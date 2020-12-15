@@ -1,0 +1,26 @@
+- name: '步骤: 拷贝通用文件'
+  include_role:
+    name: 'files-copy'
+- name: '步骤: 环境配置检测件'
+  include_role:
+    name: 'env-check'
+- name: '步骤: 生成 rke k8s 配置'
+  include_role:
+    name: 'config'
+
+- name: '步骤: 停止 init_server'
+  shell: 'systemctl stop rke2-server.service'
+  tags: init-server
+
+- name: '步骤: 拷贝 rke2 二进制文件到指定目录'
+  shell: 'cp -rf /tmp/rke2 /usr/local/bin/rke2'
+
+- name: '步骤: 重启 init_server'
+  shell: 'systemctl restart rke2-server.service; systemctl enable rke2-server.service'
+
+- name: '步骤: 等待 init_server 完成重启'
+  shell: if [ "$(/var/lib/rancher/rke2/bin/kubectl  get no > /dev/null 2>&1; echo $?)" = '0' ];then echo 0; fi
+  register: result
+  until: result.stdout == '0'
+  delay: 6
+  retries: 4000

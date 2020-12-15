@@ -1,0 +1,292 @@
+---
+- name: '步骤: 检查以下目录是否存在，如果存在则跳过'
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - ~/.kube/
+    - /etc/rancher/rke2/ssl/
+    - /var/lib/rancher/rke2/server/manifests/
+    - /var/lib/rancher/rke2/agent/images/
+    - /var/lib/rancher/rke2/agent/pod-manifests/
+    - /var/lib/rancher/rke2/agent/etc/containerd/
+
+- name: '步骤: 临时禁用 SELinux'
+  shell: 'setenforce 0 > /dev/null 2>&1; echo $?;'
+  tags: []
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: '步骤: 永久禁用 SELinux'
+  replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=.*'
+    replace: 'SELINUX=disabled'
+  tags: []
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: '步骤: 停止并禁用 firewalld.service'
+  service:
+    name:    firewalld
+    enabled: no
+    state:   stopped
+  tags: [ node-init, node-init-service ]
+  when: ( ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' ) and ansible_distribution_major_version|int > 6
+
+- name: '步骤: 停止并禁用 ufw.service'
+  service:
+    name:    ufw
+    enabled: no
+    state:   stopped
+  tags: [ ]
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: '步骤: 确保以下相关服务停止并禁用'
+  shell: "{{ item }}"
+  with_items:
+    - systemctl stop kubelet.service >/dev/null 2>&1; echo $?;
+    - systemctl stop kube-scheduler.service >/dev/null 2>&1; echo $?;
+    - systemctl stop kube-proxy.service >/dev/null 2>&1; echo $?;
+    - systemctl stop kube-apiserver.service >/dev/null 2>&1; echo $?;
+    - systemctl stop kube-controller-manager.service >/dev/null 2>&1; echo $?;
+    - systemctl stop systemd-resolved.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kubelet.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kube-scheduler.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kube-proxy.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kube-proxy.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kube-controller-manager.service >/dev/null 2>&1; echo $?;
+    - systemctl disable kube-apiserver.service >/dev/null 2>&1; echo $?;
+    - systemctl disable systemd-resolved.service >/dev/null 2>&1; echo $?;
+  tags: []
+  when:
+
+- name: '步骤: 检查是否配置默认路由'
+  shell: "ip route show | grep -qiE default >/dev/null 2>&1; echo $?"
+  register: route_stat_result
+  tags: []
+  when:
+
+- name: '步骤: 默认路由配置警告'
+  debug:
+    msg: '警告: 系统中必须要配置默认路由规则。'
+  tags: [ ]
+  when: route_stat_result is defined and route_stat_result.stdout|int > 0
+
+- name: '步骤: 检查磁盘文件系统'
+  shell: "if df -T | awk '{print $2}' | grep -w xfs >/dev/null 2>&1; then df -T | grep xfs | awk '{print $1}' | xargs xfs_info | grep ftype= | awk -F'ftype=' '{print $2}'; fi"
+  register: fs_stat_result
+  tags: []
+  when:
+
+- name: '步骤: 磁盘文件系统警告'
+  debug:
+    msg: '警告: 磁盘文件系统为 xfs，但是 ftype 等于 0 。OverlayFS 需要设置 ftype=1，具体请参考：https://docs.docker.com/storage/storagedriver/overlayfs-driver/#prerequisites'
+  tags: [ node-init, node-init-fs ]
+  when: fs_stat_result is defined and fs_stat_result.stdout|int == 0 and fs_stat_result.stdout != ''
+
+- name: '步骤: 关闭 Swap（swapoff -a）'
+  shell: swapoff -a
+  tags: []
+  when:
+
+- name: '步骤: 禁用 Swap（/etc/fstab）'
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+  tags: []
+  when:
+
+- name: '步骤: 配置主机名'
+  hostname:
+    name: "{{ node_name }}"
+  tags: []
+
+- name: '步骤: 检查 /etc/resolv.conf 配置是否为空'
+  shell: " touch /etc/resolv.conf; cat /etc/resolv.conf | grep -v '#' | grep nameserver >/dev/null 2>&1; echo $? "
+  register: dns_stat_result1
+  tags: []
+  when:
+
+- debug:
+    msg: "警告: /etc/resolv.conf 配置不能为空，可以在 /etc/resolv.conf 中配置一个不存在的 nameserver，但是不能不配置。"
+  tags: []
+  when: dns_stat_result1 is defined and dns_stat_result1.stdout|int != 0
+
+- name: '步骤: 检查 /etc/resolv.conf 配置是否包含 127.x.x.x 地址'
+  shell: " touch /etc/resolv.conf; cat /etc/resolv.conf | grep -v '#' | grep nameserver | head -n 1 | grep -e '127.*' >/dev/null 2>&1; echo $? "
+  register: dns_stat_result2
+  tags: []
+  when:
+
+- debug:
+    msg: "警告: 容器环境下，在 /etc/resolv.conf 配置文件中不能包含地址为 127.x.x.x 的 nameserver 。"
+  tags: []
+  when: dns_stat_result2 is defined and dns_stat_result2.stdout|int == 0
+
+- name: '步骤: 修改 /etc/resolv.conf'
+  shell: "{{ item }}"
+  with_items:
+    - touch /etc/resolv.conf /etc/resolv.conf-bak-$(date +"%Y%m%d%H%M");
+    - cat /etc/resolv.conf >> /etc/resolv.conf-bak-$(date +"%Y%m%d%H%M");
+    - rm -rf /etc/resolv.conf;
+    - rm -rf /run/systemd/resolve/stub-resolv.conf;
+    - touch /etc/resolv.conf;
+  tags: []
+  when: (dns_stat_result1 is defined and dns_stat_result1.stdout|int != 0) or (dns_stat_result2 is defined and dns_stat_result2.stdout|int == 0)
+
+- name: '步骤: 写入 nameserver 到 /etc/resolv.conf'
+  shell: "echo nameserver {{ item }} >> /etc/resolv.conf"
+  with_items:
+    - "{{ node_dns_list }}"
+  tags: []
+  when: (dns_stat_result1 is defined and dns_stat_result1.stdout|int != 0) or (dns_stat_result2 is defined and dns_stat_result2.stdout|int == 0)
+
+- name: '步骤: 修改时区'
+  shell: bash -c "{{ item }}"
+  with_items:
+    - touch /etc/timezone /etc/localtime;
+    - ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;
+    - if ! cat /etc/timezone | grep -qE 'Asia/Shanghai'; then echo 'Asia/Shanghai' > /etc/timezone; fi;
+  tags: []
+  when:
+
+- name: '步骤: 修改系统语言环境'
+  shell: bash -c "{{ item }}"
+  with_items:
+    - if [ $LANG != 'en_US.UTF-8' ]; then if ! cat /etc/profile | grep -qE 'export.*LANG="en_US.UTF-8"'; then echo 'export LANG="en_US.UTF-8"' >> /etc/profile; fi; source /etc/profile; fi;
+  tags: []
+  when:
+
+- name: "步骤: 确保 /etc/hosts 中存在 '127.0.0.1 localhost' 条目"
+  shell: bash -c "{{ item }}"
+  with_items:
+    - touch /etc/hosts;
+    - if ! cat /etc/hosts | grep -qE '127.0.0.1.*localhost'; then echo '127.0.0.1 localhost' >> /etc/hosts; fi;
+  tags: []
+  when:
+
+- name: '步骤: 添加 主机名 和 ip 到每个节点的 /etc/hosts 文件'
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ hostvars[item]['node_name'] }}"
+    line: "{{item}} {{ hostvars[item]['node_name'] }}"
+    state: present
+  with_items:
+    - "{{ groups['all'] }}"
+  tags: []
+  when: hostvars[item]['ansible_facts']['default_ipv4'] is defined
+
+- name: '步骤: 设置 sysctl 值 - Centos7/RedHat'
+  sysctl:
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_dict:
+    - '{{ centos7_sysctl_list }}'
+  tags: []
+  when: ( ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' ) and ansible_distribution_major_version == "7"
+
+- name: '步骤: 设置 sysctl 值 - Centos8/RedHat'
+  sysctl:
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_dict:
+    - '{{ centos8_sysctl_list }}'
+  tags: []
+  when: ( ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' ) and ansible_distribution_major_version == "8"
+
+- name: '步骤: 设置 sysctl 值 - Ubuntu\Debian'
+  sysctl:
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
+    sysctl_set: yes
+    state: present
+    reload: yes
+    ignoreerrors: true
+  with_dict:
+    - '{{ ubuntu_sysctl_list }}'
+  tags: []
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: '步骤: 文件句柄数软限制 - Centos/RedHat'
+  pam_limits:
+    backup: yes
+    domain: '{{ item.key }}'
+    limit_type: soft
+    limit_item: nofile
+    value: '{{ item.value }}'
+    use_max: yes
+  with_dict:
+    - "{{ nofile_soft_ulimit_list }}"
+  tags: []
+  when: ( ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' ) and ansible_distribution_major_version|int > 7
+
+- name: '步骤: 文件句柄数硬限制 - Centos/RedHat'
+  pam_limits:
+    backup: yes
+    domain: '{{ item.key }}'
+    limit_type: hard
+    limit_item: nofile
+    value: '{{ item.value }}'
+    use_max: yes
+  with_dict:
+    - "{{ nofile_hard_ulimit_list }}"
+  tags: []
+  when: ( ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' ) and ansible_distribution_major_version|int > 7
+
+- name: '步骤: 文件句柄数软限制 - Ubuntu\Debian'
+  pam_limits:
+    backup: yes
+    domain: '{{ item.key }}'
+    limit_type: soft
+    limit_item: nofile
+    value: '{{ item.value }}'
+    use_max: yes
+  with_dict:
+    - "{{ nofile_soft_ulimit_list }}"
+  tags: []
+  when: ( ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu' )
+
+- name: '步骤: 文件句柄数硬限制  - Ubuntu\Debian'
+  pam_limits:
+    backup: yes
+    domain: '{{ item.key }}'
+    limit_type: hard
+    limit_item: nofile
+    value: '{{ item.value }}'
+    use_max: yes
+  with_dict:
+    - "{{ nofile_hard_ulimit_list }}"
+  tags: []
+  when: ( ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu' )
+
+- name: '步骤: 环境变量检查 - /usr/local/bin'
+  lineinfile:
+    path: /etc/profile
+    line: export PATH="$PATH:/usr/local/bin:/var/lib/rancher/rke2/bin"
+  when: '"/usr/local/bin" not in ansible_env.PATH or "/var/lib/rancher/rke2/bin" not in ansible_env.PATH'
+
+- name: '步骤: 自动补全 - crictl\kubectl'
+  lineinfile:
+    dest: /etc/profile
+    line: "{{item}}"
+    state: present
+  with_items:
+    - source <(crictl completion bash)
+    - source <(kubectl completion bash)
+
+- name: '步骤: etcdctl 自动补全和相关环境变量设置'
+  lineinfile:
+    dest: /etc/profile
+    line: "{{item}}"
+    state: present
+  with_items:
+    - '[[ $PS1 && -f /usr/share/bash-completion/etcdctl_bash_completion ]] && . /usr/share/bash-completion/etcdctl_bash_completion'
+    - "{{ etcdctl_env }}"
+  when: inventory_hostname in groups['master']
+

@@ -1,0 +1,77 @@
+---
+- name: '步骤: 检查以下目录是否存在，如果存在则跳过'
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - ~/.kube/
+    - /etc/rancher/rke2/ssl/
+    - /var/lib/rancher/rke2/server/manifests/
+    - /var/lib/rancher/rke2/agent/images/
+    - /var/lib/rancher/rke2/agent/pod-manifests/
+    - /var/lib/rancher/rke2/agent/etc/containerd/
+
+# 生成 rke2 master config.yaml
+- name: '步骤: 生成 rke2 master config.yaml'
+  template:
+    src: /etc/ansible/templates/rke2-master-config.yaml.j2
+    dest: /etc/rancher/rke2/master-config.yaml
+  tags: [ master-config ]
+  when: inventory_hostname in groups['master']
+
+# 生成 rke2 agent config.yaml
+- name: '步骤: 生成 rke2 agent config.yaml'
+  template:
+    src: /etc/ansible/templates/rke2-agent-config.yaml.j2
+    dest: /etc/rancher/rke2/agent-config.yaml
+  tags: [ agent-config ]
+  when: inventory_hostname in groups['agent']
+
+# 拷贝 镜像仓库 证书文件
+- name: '步骤: 拷贝 registry ca_file 到节点'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  with_items:
+    - { src: '/etc/ansible/ssl/{{ registry.ca_file }}', dest: '/etc/rancher/rke2/ssl/{{ registry.ca_file }}' }
+  tags: []
+  when: registry.ca_file is defined and registry.ca_file != ''
+
+- name: '步骤: 拷贝 registry key_file 到节点'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  with_items:
+    - { src: '/etc/ansible/ssl/{{ registry.key_file }}', dest: '/etc/rancher/rke2/ssl/{{ registry.key_file }}' }
+  tags: []
+  when: registry.key_file is defined and registry.key_file != ''
+
+- name: '步骤: 拷贝 registry cert_file 到节点'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  with_items:
+    - { src: '/etc/ansible/ssl/{{ registry.cert_file }}', dest: '/etc/rancher/rke2/ssl/{{ registry.cert_file }}' }
+  tags: []
+  when: registry.cert_file is defined and registry.cert_file != ''
+
+# 生成 Containerd Registry Configuration
+- name: '步骤: 生成 Containerd Registry Configuration'
+  template:
+    src: /etc/ansible/templates/registries.yaml.j2
+    dest: /etc/rancher/rke2/registries.yaml
+  tags: [ registries ]
+  when: []
+
+- name: '步骤: 去除配置文件中的空行'
+  shell: "{{ item }}"
+  with_items:
+    - if [ -f /etc/crictl.yaml ]; then sed -i '/^$/d' /etc/crictl.yaml; fi;
+    - if [ -f /etc/rancher/rke2/registries.yaml ]; then sed -i '/^$/d' /etc/rancher/rke2/registries.yaml; fi;
+    - if [ -f /etc/rancher/rke2/agent-config.yaml ]; then sed -i '/^$/d' /etc/rancher/rke2/agent-config.yaml; fi;
+    - if [ -f /etc/rancher/rke2/master-config.yaml ]; then sed -i '/^$/d' /etc/rancher/rke2/master-config.yaml; fi;
+  tags: []
+

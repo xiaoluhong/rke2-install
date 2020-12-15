@@ -1,0 +1,107 @@
+oom_score = -1000
+
+[grpc]
+  address = "/run/k3s/containerd/containerd.sock"
+  tcp_address = ""
+  tcp_tls_cert = ""
+  tcp_tls_key = ""
+  uid = 0
+  gid = 0
+  #max_recv_message_size = 16777216
+  #max_send_message_size = 16777216
+
+[ttrpc]
+  address = ""
+  uid = 0
+  gid = 0
+
+[debug]
+  address = "/run/k3s/containerd/containerd-debug.sock"
+  uid = 0
+  gid = 0
+  level = "info"
+
+[cgroup]
+  path = ""
+
+[timeouts]
+  "io.containerd.timeout.shim.cleanup" = "5s"
+  "io.containerd.timeout.shim.load" = "5s"
+  "io.containerd.timeout.shim.shutdown" = "3s"
+  "io.containerd.timeout.task.state" = "2s"
+
+# metrics configuration
+[metrics]
+  # tcp address!
+  address = "127.0.0.1:1234"
+  grpc_histogram = false
+
+[plugins.opt]
+  path = "{{ .NodeConfig.Containerd.Opt }}"
+
+[plugins.scheduler]
+  pause_threshold = 0.02
+  deletion_threshold = 0
+  mutation_threshold = 100
+  schedule_delay = "0s"
+  startup_delay = "100ms"
+
+[plugins.cri]
+  stream_server_address = "127.0.0.1"
+  stream_server_port = "10010"
+  stream_idle_timeout = "4h0m0s"
+  enable_selinux = {{ .NodeConfig.SELinux }}
+  max_concurrent_downloads = 10
+  max_container_log_line_size = 16384
+  stats_collect_period = 10
+
+{{- if .IsRunningInUserNS }}
+  disable_cgroup = true
+  disable_apparmor = true
+  restrict_oom_score_adj = true
+{{end}}
+
+{{- if .NodeConfig.AgentConfig.PauseImage }}
+  sandbox_image = "{{ .NodeConfig.AgentConfig.PauseImage }}"
+{{end}}
+
+{{- if .NodeConfig.AgentConfig.Snapshotter }}
+[plugins.cri.containerd]
+  disable_snapshot_annotations = true
+  snapshotter = "{{ .NodeConfig.AgentConfig.Snapshotter }}"
+{{end}}
+
+{{- if not .NodeConfig.NoFlannel }}
+[plugins.cri.cni]
+  bin_dir = "{{ .NodeConfig.AgentConfig.CNIBinDir }}"
+  conf_dir = "{{ .NodeConfig.AgentConfig.CNIConfDir }}"
+{{end}}
+
+[plugins.cri.containerd.runtimes.runc]
+  runtime_type = "io.containerd.runc.v2"
+
+{{ if .PrivateRegistryConfig }}
+{{ if .PrivateRegistryConfig.Mirrors }}
+[plugins.cri.registry.mirrors]{{end}}
+{{range $k, $v := .PrivateRegistryConfig.Mirrors }}
+[plugins.cri.registry.mirrors."{{$k}}"]
+  endpoint = [{{range $i, $j := $v.Endpoints}}{{if $i}}, {{end}}{{printf "%q" .}}{{end}}]
+{{end}}
+
+{{range $k, $v := .PrivateRegistryConfig.Configs }}
+{{ if $v.Auth }}
+[plugins.cri.registry.configs."{{$k}}".auth]
+  {{ if $v.Auth.Username }}username = {{ printf "%q" $v.Auth.Username }}{{end}}
+  {{ if $v.Auth.Password }}password = {{ printf "%q" $v.Auth.Password }}{{end}}
+  {{ if $v.Auth.Auth }}auth = {{ printf "%q" $v.Auth.Auth }}{{end}}
+  {{ if $v.Auth.IdentityToken }}identitytoken = {{ printf "%q" $v.Auth.IdentityToken }}{{end}}
+{{end}}
+{{ if $v.TLS }}
+[plugins.cri.registry.configs."{{$k}}".tls]
+  {{ if $v.TLS.CAFile }}ca_file = "{{ $v.TLS.CAFile }}"{{end}}
+  {{ if $v.TLS.CertFile }}cert_file = "{{ $v.TLS.CertFile }}"{{end}}
+  {{ if $v.TLS.KeyFile }}key_file = "{{ $v.TLS.KeyFile }}"{{end}}
+  {{ if $v.TLS.InsecureSkipVerify }}insecure_skip_verify = true{{end}}
+{{end}}
+{{end}}
+{{end}}

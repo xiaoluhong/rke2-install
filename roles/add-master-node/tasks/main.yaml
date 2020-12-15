@@ -1,0 +1,35 @@
+---
+- name: '步骤: 拷贝通用文件'
+  include_role:
+    name: 'files-copy'
+  when: hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 拷贝通用文件'
+  include_role:
+    name: 'env-check'
+  when: hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 拷贝通用文件'
+  include_role:
+    name: 'config'
+  when: hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 等待 rke2 server 可用'
+  shell: curl -kSsL https://{{ rke2.server.url }}:9345/cacerts | grep 'BEGIN.*.CERTIFICATE' > /dev/null 2>&1; echo $?
+  register: state_results
+  until: state_results.stdout|int == 0
+  delay: 6
+  retries: 4000
+  when: init_server is undefined or init_server|bool != true  and hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 停止 rke2 server'
+  shell: 'systemctl stop rke2-server.service;'
+  when: init_server is undefined or init_server|bool != true  and hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 拷贝 rke2 二进制文件到指定目录'
+  shell: 'cp -rf /tmp/rke2 /usr/local/bin/rke2'
+  when: init_server is undefined or init_server|bool != true  and hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true
+
+- name: '步骤: 重启 rke2 server'
+  shell: 'systemctl restart rke2-server.service; systemctl enable rke2-server.service'
+  when: init_server is undefined or init_server|bool != true  and hostvars[inventory_hostname].add_node is defined and hostvars[inventory_hostname].add_node|bool == true

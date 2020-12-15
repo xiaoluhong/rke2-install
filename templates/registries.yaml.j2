@@ -1,0 +1,22 @@
+{% if (registry.url is defined and registry.agreement is defined and registry.url|default([]) and registry.agreement|default([]) ) or (registry.mirror is defined and registry.mirror|default([]) ) %}
+mirrors:
+{% if registry.mirror is defined and registry.mirror|default([]) %}
+  docker.io:
+    endpoint:
+    {{ registry.mirror|to_nice_yaml|indent() }}
+{% endif %}
+{% if registry.url is defined and registry.agreement is defined and registry.url|default([]) and registry.agreement|default([]) %}
+  {{ registry.url }}:
+    endpoint:
+      - {{ registry.agreement }}://{{ registry.url }}
+configs:
+  {{ registry.url }}:
+    auth:
+      username: {{ registry.username }} # this is the registry username
+      password: {{ registry.password }} # this is the registry password
+    tls:
+      cert_file: {{ registry.cert_file }} # path to the cert file used in the registry
+      key_file:  {{ registry.key_file }} # path to the key file used in the registry
+      ca_file:   {{ registry.ca_file }} # path to the ca file used in the registry
+{% endif %}
+{% endif %}

@@ -1,0 +1,397 @@
+{% if init_server is undefined or init_server|bool != true %}
+{% for host in groups['master'] %}
+{% if hostvars[host]['init_server'] is defined and hostvars[host]['init_server']|bool == true %}
+server: https://{{ host|regex_replace('\'', '')|regex_replace('\"', '') }}:9345
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if rke2.token is defined and rke2.token|default([]) %}
+token: {{ rke2.token|regex_replace('\'', '')|regex_replace('\"', '') }}
+{% endif %}
+{% if rke2.server.config is defined and rke2.server.config |default([]) %}
+config: {{ rke2.server.config }}
+{% endif %}
+
+{% if advertise_address is defined and advertise_address|default([]) %}
+advertise-address: {{ advertise_address }}
+{% endif %}
+
+{% if rke2.server.url_tls_san is defined and rke2.server.url_tls_san |default([]) %}
+tls-san:
+{{ rke2.server.url_tls_san|to_nice_yaml|indent(2, true)|regex_replace(': ', '=')|regex_replace('\'', '')|regex_replace('\"', '') }}
+{% endif %}
+
+{% if rke2.server.data_dir is defined and rke2.server.data_dir |default([]) %}
+data-dir: {{ rke2.server.data_dir }}
+{% endif %}
+
+{% if rke2.server.cluster_cidr is defined and rke2.server.cluster_cidr |default([]) %}
+cluster-cidr: {{ rke2.server.cluster_cidr }}
+{% endif %}
+
+{% if rke2.server.service_cidr is defined and rke2.server.service_cidr |default([]) %}
+service-cidr: {{ rke2.server.service_cidr }}
+{% endif %}
+
+{% if rke2.server.cluster_dns is defined and rke2.server.cluster_dns |default([]) %}
+cluster-dns: {{ rke2.server.cluster_dns }}
+{% endif %}
+
+{% if rke2.server.cluster_domain is defined and rke2.server.cluster_domain |default([]) %}
+cluster-domain: {{ rke2.server.cluster_domain }}
+{% endif %}
+
+write-kubeconfig: /home/{{ ansible_ssh_user }}/.kube/config
+
+{% if rke2.server.write_kubeconfig_mode is defined and rke2.server.write_kubeconfig_mode |default([]) %}
+write-kubeconfig-mode: {{ rke2.server.write_kubeconfig_mode }}
+{% endif %}
+
+{% if node_name is defined and node_name |default([]) %}
+node-name: {{ node_name }}
+{% endif %}
+
+{% if node_label is defined and node_label |default([]) %}
+node-label:
+{% set items = node_label|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if node_taint is defined and node_taint |default([]) %}
+node-taint:
+{% set items = node_taint|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if node_ip is defined and node_ip |default([]) %}
+node-ip: {{ node_ip }}
+{% endif %}
+
+{% if rke2.profile is defined and rke2.profile |default([]) %}
+profile: {{ rke2.profile }}
+{% endif %}
+
+{% if rke2.container_runtime_endpoint is defined and rke2.container_runtime_endpoint |default([]) %}
+container-runtime-endpoint: {{ rke2.container_runtime_endpoint }}
+{% endif %}
+
+{% if rke2.snapshotter is defined and rke2.snapshotter |default([]) %}
+snapshotter: {{ rke2.snapshotter }}
+{% endif %}
+
+{% if rke2.cloud_provider_name is defined and rke2.cloud_provider_name |default([]) %}
+cloud-provider-name: {{ rke2.cloud_provider_name }}
+{% endif %}
+
+{% if rke2.cloud_provider_config is defined and rke2.cloud_provider_config |default([]) %}
+cloud-provider-config: {{ rke2.cloud_provider_config }}
+{% endif %}
+
+{% if rke2.server.disable is defined and rke2.server.disable |default([]) %}
+disable: {{ rke2.server.disable }}
+{% endif %}
+
+{% if rke2.server.selinux is defined and rke2.server.selinux|bool == true %}
+selinux: true
+{% endif %}
+
+{% if rke2.server.selinux is defined and rke2.server.selinux|bool == false %}
+selinux: false
+{% endif %}
+
+{% if rke2.server.secrets_encryption is defined and rke2.server.secrets_encryption |default([]) %}
+secrets-encryption: {{ rke2.server.secrets_encryption }}
+{% endif %}
+
+private-registry: "/etc/rancher/rke2/registries.yaml"
+{% if system_default_registry is defined and system_default_registry|length > 0 %}
+system-default-registry: {{ system_default_registry }}
+{% endif %}
+
+{% if rke2.server.etcd_snapshot_dir is defined and rke2.server.etcd_snapshot_dir |default([]) %}
+etcd-snapshot-dir: {{ rke2.server.etcd_snapshot_dir }}
+{% endif %}
+
+{% if rke2.server.etcd_disable_snapshots is defined and rke2.server.etcd_disable_snapshots|bool == true %}
+etcd-disable-snapshots: true
+{% endif %}
+
+{% if rke2.server.etcd_disable_snapshots is defined and rke2.server.etcd_disable_snapshots|bool == false %}
+etcd-disable-snapshots: false
+{% endif %}
+
+{% if rke2.server.etcd_snapshot_retention is defined and rke2.server.etcd_snapshot_retention |default([]) %}
+etcd-snapshot-retention: {{ rke2.server.etcd_snapshot_retention }}
+{% endif %}
+
+{% if rke2.server.etcd_snapshot_schedule_cron is defined and rke2.server.etcd_snapshot_schedule_cron |default([]) %}
+etcd-snapshot-schedule-cron: {{ rke2.server.etcd_snapshot_schedule_cron }}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) or ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined and hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
+kube-controller-manager-arg:
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].groups_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].hosts_kube_controller_manager_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_controller_manager_arg |combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].global_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].hosts_kube_controller_manager_arg == None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_controller_manager_arg |combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].global_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].groups_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined or hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
+{% set items = hostvars[inventory_hostname].hosts_kube_controller_manager_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].hosts_kube_controller_manager_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_controller_manager_arg|combine(hostvars[inventory_hostname].groups_kube_controller_manager_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].groups_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined and hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_controller_manager_arg|combine(hostvars[inventory_hostname].hosts_kube_controller_manager_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is undefined or hostvars[inventory_hostname].global_kube_controller_manager_arg == None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined and hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_controller_manager_arg|combine(hostvars[inventory_hostname].hosts_kube_controller_manager_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined and hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_controller_manager_arg|combine(hostvars[inventory_hostname].groups_kube_controller_manager_arg)|combine(hostvars[inventory_hostname].hosts_kube_controller_manager_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is defined and hostvars[inventory_hostname].global_kube_scheduler_arg != None ) or ( hostvars[inventory_hostname].groups_kube_scheduler_arg is defined and hostvars[inventory_hostname].groups_kube_scheduler_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is defined and hostvars[inventory_hostname].hosts_kube_scheduler_arg != None ) %}
+kube-scheduler-arg:
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is defined and hostvars[inventory_hostname].global_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is undefined or hostvars[inventory_hostname].groups_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is undefined or hostvars[inventory_hostname].hosts_kube_scheduler_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_scheduler_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is undefined or hostvars[inventory_hostname].global_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is defined and hostvars[inventory_hostname].groups_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is undefined or hostvars[inventory_hostname].hosts_kube_scheduler_arg == None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_scheduler_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is undefined or hostvars[inventory_hostname].global_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is undefined or hostvars[inventory_hostname].groups_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is defined or hostvars[inventory_hostname].hosts_kube_scheduler_arg != None ) %}
+{% set items = hostvars[inventory_hostname].hosts_kube_scheduler_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is defined and hostvars[inventory_hostname].global_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is defined and hostvars[inventory_hostname].groups_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is undefined or hostvars[inventory_hostname].hosts_kube_scheduler_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_scheduler_arg|combine(hostvars[inventory_hostname].groups_kube_scheduler_arg) |dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is defined and hostvars[inventory_hostname].global_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is undefined or hostvars[inventory_hostname].groups_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is defined and hostvars[inventory_hostname].hosts_kube_scheduler_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_scheduler_arg|combine(hostvars[inventory_hostname].hosts_kube_scheduler_arg) |dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is undefined or hostvars[inventory_hostname].global_kube_scheduler_arg == None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is defined and hostvars[inventory_hostname].groups_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is defined and hostvars[inventory_hostname].hosts_kube_scheduler_arg != None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_scheduler_arg|combine(hostvars[inventory_hostname].hosts_kube_scheduler_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_scheduler_arg is defined and hostvars[inventory_hostname].global_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].groups_kube_scheduler_arg is defined and hostvars[inventory_hostname].groups_kube_scheduler_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_scheduler_arg is defined and hostvars[inventory_hostname].hosts_kube_scheduler_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_scheduler_arg|combine(hostvars[inventory_hostname].groups_kube_scheduler_arg)|combine(hostvars[inventory_hostname].hosts_kube_scheduler_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is defined and hostvars[inventory_hostname].global_kube_apiserver_arg != None ) or ( hostvars[inventory_hostname].groups_kube_apiserver_arg is defined and hostvars[inventory_hostname].groups_kube_apiserver_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is defined and hostvars[inventory_hostname].hosts_kube_apiserver_arg != None ) %}
+kube-apiserver-arg:
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is defined and hostvars[inventory_hostname].global_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is undefined or hostvars[inventory_hostname].groups_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is undefined or hostvars[inventory_hostname].hosts_kube_apiserver_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_apiserver_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is undefined or hostvars[inventory_hostname].global_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is defined and hostvars[inventory_hostname].groups_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is undefined or hostvars[inventory_hostname].hosts_kube_apiserver_arg == None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_apiserver_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is undefined or hostvars[inventory_hostname].global_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is undefined or hostvars[inventory_hostname].groups_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is defined or hostvars[inventory_hostname].hosts_kube_apiserver_arg != None ) %}
+{% set items = hostvars[inventory_hostname].hosts_kube_apiserver_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is defined and hostvars[inventory_hostname].global_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is defined and hostvars[inventory_hostname].groups_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is undefined or hostvars[inventory_hostname].hosts_kube_apiserver_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_apiserver_arg|combine(hostvars[inventory_hostname].groups_kube_apiserver_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is defined and hostvars[inventory_hostname].global_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is undefined or hostvars[inventory_hostname].groups_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is defined and hostvars[inventory_hostname].hosts_kube_apiserver_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_apiserver_arg|combine(hostvars[inventory_hostname].hosts_kube_apiserver_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is undefined or hostvars[inventory_hostname].global_kube_apiserver_arg == None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is defined and hostvars[inventory_hostname].groups_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is defined and hostvars[inventory_hostname].hosts_kube_apiserver_arg != None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_apiserver_arg|combine(hostvars[inventory_hostname].hosts_kube_apiserver_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_apiserver_arg is defined and hostvars[inventory_hostname].global_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].groups_kube_apiserver_arg is defined and hostvars[inventory_hostname].groups_kube_apiserver_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_apiserver_arg is defined and hostvars[inventory_hostname].hosts_kube_apiserver_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_apiserver_arg|combine(hostvars[inventory_hostname].groups_kube_apiserver_arg)|combine(hostvars[inventory_hostname].hosts_kube_apiserver_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is defined and hostvars[inventory_hostname].global_kubelet_arg != None ) or ( hostvars[inventory_hostname].groups_kubelet_arg is defined and hostvars[inventory_hostname].groups_kubelet_arg != None ) or ( hostvars[inventory_hostname].hosts_kubelet_arg is defined and hostvars[inventory_hostname].hosts_kubelet_arg != None ) %}
+kubelet-arg:
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is defined and hostvars[inventory_hostname].global_kubelet_arg != None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is undefined or hostvars[inventory_hostname].groups_kubelet_arg == None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is undefined or hostvars[inventory_hostname].hosts_kubelet_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kubelet_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is undefined or hostvars[inventory_hostname].global_kubelet_arg == None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is defined and hostvars[inventory_hostname].groups_kubelet_arg != None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is undefined or hostvars[inventory_hostname].hosts_kubelet_arg == None ) %}
+{% set items = hostvars[inventory_hostname].groups_kubelet_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is undefined or hostvars[inventory_hostname].global_kubelet_arg == None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is undefined or hostvars[inventory_hostname].groups_kubelet_arg == None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is defined or hostvars[inventory_hostname].hosts_kubelet_arg != None ) %}
+{% set items = hostvars[inventory_hostname].hosts_kubelet_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is defined and hostvars[inventory_hostname].global_kubelet_arg != None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is defined and hostvars[inventory_hostname].groups_kubelet_arg != None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is undefined or hostvars[inventory_hostname].hosts_kubelet_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kubelet_arg|combine(hostvars[inventory_hostname].groups_kubelet_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is defined and hostvars[inventory_hostname].global_kubelet_arg != None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is undefined or hostvars[inventory_hostname].groups_kubelet_arg == None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is defined and hostvars[inventory_hostname].hosts_kubelet_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kubelet_arg|combine(hostvars[inventory_hostname].hosts_kubelet_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is undefined or hostvars[inventory_hostname].global_kubelet_arg == None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is defined and hostvars[inventory_hostname].groups_kubelet_arg != None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is defined and hostvars[inventory_hostname].hosts_kubelet_arg != None ) %}
+{% set items = hostvars[inventory_hostname].groups_kubelet_arg|combine(hostvars[inventory_hostname].hosts_kubelet_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kubelet_arg is defined and hostvars[inventory_hostname].global_kubelet_arg != None ) and ( hostvars[inventory_hostname].groups_kubelet_arg is defined and hostvars[inventory_hostname].groups_kubelet_arg != None ) and ( hostvars[inventory_hostname].hosts_kubelet_arg is defined and hostvars[inventory_hostname].hosts_kubelet_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kubelet_arg|combine(hostvars[inventory_hostname].groups_kubelet_arg)|combine(hostvars[inventory_hostname].hosts_kubelet_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) or ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
+kube-proxy-arg:
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_proxy_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined or hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
+{% set items = hostvars[inventory_hostname].hosts_kube_proxy_arg|combine()|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].groups_kube_proxy_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
+{% set items = hostvars[inventory_hostname].groups_kube_proxy_arg|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
+{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].groups_kube_proxy_arg)|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
+{% for item in items %}
+  - {{ item.key }}={{ item.value }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if rke2.server.other_config is defined and rke2.server.other_config |default([]) %}
+{{ rke2.server.other_config|to_nice_yaml }}
+{% endif %}

@@ -1,0 +1,107 @@
+# 全局配置
+
+install:
+  # 是否在线
+  online: true
+  # 版本选择
+  version: 'latest'
+  # single 或者 ha
+  deploy_type: 'none'
+
+upgrade:
+  # 是否在线
+  online: true
+  # 版本选择
+  version: 'latest'
+  # single 或者 ha
+  deploy_type: 'ha'
+
+uninstall:
+  enable: false
+
+k8s:
+  hosts_kubelet_arg:
+  #  - feature-gates=CSIMigration=false
+  #  - feature-gates=CSIMigration1=false
+  hosts_kube_proxy_arg:
+  #  - feature-gates=CSIMigration1=false
+    - feature-gates=CSIMigration2=false
+  kube_apiserver_arg: '[]'
+  kube_controller_manager_arg: '[]'
+  kube_scheduler_arg: '[]'
+
+rke2:
+  # ha 模式下认证 token
+  token: 'cb3f15296208900746630724cd86e561'
+  cloud_provider_name: ""
+  cloud_provider_config: ""
+  container_runtime_endpoint: ""
+  snapshotter: ""
+  # (security) Validate system configuration against the selected benchmark (valid items: cis-1.5)
+  profile: ""
+  server:
+    debug: false
+    config: /etc/rancher/rke2/master-config.yaml
+    write_kubeconfig: ~/.kube/config
+    bind-address: 0.0.0.0
+    # url: 用于 Agent 连接 Master 的 ip 或者域名，如果是 HA 模式，此地址应该为 master 前面的 VIP 地址。此配置只能设置一个地址。
+    url: 192.168.50.120:9345
+    # url_tls_san: 因为 ssl 证书中会绑定 ip 或者域名，只有通过绑定的地址才可以访问。如果后期想更换另一个地址访问，则可以在此添加。此配置可以设置多个地址。
+    url_tls_san:
+      - 192.168.50.120
+      - www.test.com
+    # Do not deploy packaged components and delete any deployed components (valid items: rke2-canal, rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
+    disable: rke2-canal,rke2-coredns
+    write_kubeconfig_mode: "0644"
+    # default: "cluster.local"
+    cluster_domain: "cluster.local"
+    # default: 10.43.0.10
+    cluster_dns: "10.43.0.10"
+    # default: "10.43.0.0/16"
+    service_cidr: "10.43.0.0/16"
+    # default: "10.42.0.0/16"
+    cluster_cidr: "10.42.0.0/16"
+    # rke2 数据目录，默认: "/var/lib/rancher/rke2"
+    data_dir: /var/lib/rancher/rke2
+    selinux: false
+    etcd_snapshot_dir: "${data-dir}/db/snapshots"
+    etcd_disable_snapshots: false
+    etcd_snapshot_retention: "5"
+    etcd_snapshot_schedule_cron: "0 */12 * * *"
+    secrets_encryption: ""
+    other_config: ""
+  agent:
+    config: /etc/rancher/rke2/agent-config.yaml
+    debug: false
+    selinux: false
+    # rke2 数据目录，默认: "/var/lib/rancher/rke2"
+    data_dir: /var/lib/rancher/rke2
+    other_config: ""
+
+# 默认镜像仓库
+system_default_registry: '1111.com'
+
+registry:
+  # url 不加协议头
+  url: ''
+  agreement: 'https' # 仓库地址的协议头，http 或者 https
+  username: ''
+  password: ''
+  email: ''
+  is_default: true # 设置为 true 后，K8S 相关的系统镜像将从此仓库拉取。
+  # 对于使用自签名的镜像仓库，需要提供 CA 证书做认证，文件保存于 ssl 目录下，此处填写 ca 文件名称，比如: xxx-ca.pem。
+  ca_file: ''
+  # 如果镜像仓库启用了双向认证，需要在此处配置用于认证的 ssl 证书，文件保存于 ssl 目录下，此处填写 证书文件名称，比如: xxx-cert.pem。
+  cert_file: ''
+  key_file: ''
+
+sysctl_list:
+  vm.panic_on_oom: 0
+  vm.overcommit_memory: 1
+  kernel.panic: 10
+  kernel.panic_on_oops: 1
+  net.ipv4.ip_forward: 1
+
+
+
+

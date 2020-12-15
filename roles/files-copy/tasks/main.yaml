@@ -1,0 +1,54 @@
+---
+- name: '步骤: 检查以下目录是否存在，如果存在则跳过'
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - ~/.kube/
+    - /etc/rancher/rke2/ssl/
+    - /var/lib/rancher/rke2/server/manifests/
+    - /var/lib/rancher/rke2/agent/images/
+    - /var/lib/rancher/rke2/agent/pod-manifests/
+    - /var/lib/rancher/rke2/agent/etc/containerd/
+
+# 拷贝 rke2 二进制文件和 systemd service 文件
+- name: '步骤: 拷贝 rke2 二进制文件 和 master systemd service 文件'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: '/etc/ansible/bin/rke2.{{ rke2.version }}.linux-amd64', dest: '/tmp/rke2', mode: 755}
+    - { src: '/etc/ansible/bin/etcdctl', dest: '/usr/local/bin/etcdctl', mode: 755}
+    - { src: '/etc/ansible/bin/etcdctl_bash_completion', dest: '/usr/share/bash-completion/etcdctl_bash_completion', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-killall.sh', dest: '/usr/local/bin/rke2-killall.sh', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-uninstall.sh', dest: '/usr/local/bin/rke2-uninstall.sh', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-server.service', dest: '/lib/systemd/system/rke2-server.service', mode: 644}
+    - { src: '/etc/ansible/templates/crictl.yaml.j2', dest: '/etc/crictl.yaml', mode: 644}
+    - { src: '/etc/ansible/templates/containerd-config.toml.tmpl.j2', dest: '/var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl', mode: 644}
+  tags: [ file-copy ]
+  when: inventory_hostname in groups['master']
+
+- name: '步骤: 拷贝 rke2 二进制文件 和 agent systemd service 文件'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: '/etc/ansible/bin/rke2.{{ rke2.version }}.linux-amd64', dest: '/tmp/rke2', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-killall.sh', dest: '/usr/local/bin/rke2-killall.sh', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-uninstall.sh', dest: '/usr/local/bin/rke2-uninstall.sh', mode: 755}
+    - { src: '/etc/ansible/bin/rke2-agent.service', dest: '/lib/systemd/system/rke2-agent.service', mode: 644}
+    - { src: '/etc/ansible/templates/crictl.yaml.j2', dest: '/etc/crictl.yaml', mode: 644}
+    - { src: '/etc/ansible/templates/containerd-config.toml.tmpl.j2', dest: '/var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl', mode: 644}
+  tags: [ file-copy ]
+  when: inventory_hostname in groups['agent']
+
+- name: '步骤: 检查本地是否有镜像压缩包'
+  local_action: stat path="/etc/ansible/bin/rke2-images.{{ rke2.version }}.linux-amd64.tar.gz"
+  register: result
+  tags: [ file-copy ]
+- name: '步骤: 拷贝镜像文件'
+  copy: { src: '/etc/ansible/bin/rke2-images.{{ rke2.version }}.linux-amd64.tar.gz', dest: '/var/lib/rancher/rke2/agent/images/rke2-images.linux-amd64.tar.gz' }
+  when: result is defined and result.stat.exists
+  tags: [ file-copy ]

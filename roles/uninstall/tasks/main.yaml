@@ -1,0 +1,24 @@
+---
+- name: '步骤: 卸载 rke2'
+  shell: "{{ item }}"
+  with_items:
+    - bash /usr/local/bin/rke2-killall.sh > /dev/null 2>&1; echo $?;
+    - bash /usr/local/bin/rke2-uninstall.sh > /dev/null 2>&1; echo $?;
+  tags: []
+
+- name: '步骤: 删除残留文件'
+  shell: "{{ item }}"
+  with_items:
+    - rm -rf /var/lib/rancher/rke2/agent/client*
+    - rm -rf /var/lib/rancher/rke2/agent/kubelet.kubeconfig
+    - rm -rf /var/lib/rancher/rke2/agent/kubeproxy.kubeconfig
+    - rm -rf /var/lib/rancher/rke2/agent/logs/
+    - rm -rf /var/lib/rancher/rke2/agent/pod-manifests/
+    - rm -rf /var/lib/rancher/rke2/agent/server-ca.crt
+    - rm -rf /var/lib/rancher/rke2/agent/rke2controller.kubeconfig
+    - rm -rf /var/lib/rancher/rke2/agent/serving-kubelet.crt
+    - rm -rf /var/lib/rancher/rke2/agent/serving-kubelet.key
+    - rm -rf /var/lib/rancher/rke2/data
+    - rm -rf /var/lib/rancher/rke2/server
+    - rm -rf /var/lib/rancher/rke2/bin
+  tags: []

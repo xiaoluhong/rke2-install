@@ -1,0 +1,473 @@
+# 配置参数分为主机变量参数、组变量参数，全局变量参数。这三种变量参数中主机变量参数优先级最高，其次是组变量参数，最后是全局变量参数，优先级高的会覆盖优先级低的。
+# 单节点部署，只需要在 master 主机组中配置一台主机即可，并且需要设置这台主机为 init server，后期用于集群扩展为 HA。
+# HA 安装， 在 master 主机组中配置多台主机即可，但是数量必须为奇数。并且必须要有一个节点为 init server 节点，并且只能有一个节点为 init server，其他 master 节点会连接此节点组建 master 集群。
+
+# 操作方法
+# sh start.sh 执行完整的安装\升级流程，是安装或者升级需要在 rke2.operation_type 中指定。
+# sh start.sh --tags=install-init-server 安装 init server。
+# sh start.sh --tags=upgrade-init-server 升级 init server。
+# sh start.sh --tags=install-server 安装其他的 server 节点。
+# sh start.sh --tags=upgrade-server 升级其他的 server。
+# sh start.sh --tags=install-agent 安装 agent 节点。
+# sh start.sh --tags=upgrade-agent 升级 agent 节点。
+# sh start.sh --tags=add-node 添加 master 或者 agent 节点，需要在节点上设置 add_node: true
+# sh start.sh --tags=config 生成或者更新 rke2 k8s 配置
+# sh start.sh --tags=remove-node 删除节点，需要预先在主机上配置 remove: true
+# sh start.sh --tags=uninstall 卸载集群
+
+################### 主机 配置参数说明 ###################
+# advertise_address: apiserver 用于向集群成员发布消息的通告地址，默认与 node-ip 相同，一般不用配置。
+# node_ip: 节点之间 advertise ip。
+# node_name: 节点名称。
+# role: 定义 K8S 集群节点角色，master 或者 agent。
+# node_label: 节点标签，数组形式，例如：- test: true
+# node_taint: 节点污点，数组形式，例如：- "CriticalAddonsOnly: true:NoExecute"
+# init_server: true/false，HA 模式下，必须要有一个 master 节点为 init server，并且只能有一个 master 节点为 init server，其他 master 节点会连接此节点组建 master 集群。
+# add_node: true/false。新的节点设置为 true，将会自动添加到集群。
+# remove_node: true，如果要删除某个节点，在节点中定义 remove 为 true。
+
+####### 主机 K8S 组件参数 #######
+# hosts_kubelet_arg: kubelet 扩展参数，agent 和 master 均支持。
+# hosts_kube_proxy_arg: kube-poryx 扩展参数，agent 和 master 均支持。
+# hosts_kube_scheduler_arg: kube-scheduler 扩展参数，仅 master 节点支持。
+# hosts_kube_apiserver_arg: kube-apiserver 扩展参数，仅 master 节点支持。
+# hosts_kube_controller_manager_arg: kube-controller_manager 扩展参数，仅 master 节点支持。
+
+####### 主机 ssh 连接配置信息 #######
+# ansible_ssh_port: ssh 端口
+# ansible_ssh_user: ansible ssh 用户
+# ansible_ssh_pass: ansible ssh 用户密码
+# ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
+# ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=ssh-key/xxxx-key
+
+master: # 定义主机组，也可以当做集群名
+  hosts:
+    192.168.64.2:
+      node_ip: "192.168.64.2"
+      advertise_address: ''
+      node_name: 'test-1'
+      node_label:
+        - master: 001
+      init_server: true
+      hosts_kubelet_arg:
+      #  - max-pods: 60
+      hosts_kube_proxy_arg:
+      #  - xxx: xxx
+      hosts_kube_scheduler_arg:
+      #   - xxx: xxx
+      hosts_kube_apiserver_arg:
+      # - xxx: xxx
+      hosts_kube_controller_manager_arg:
+      # - xxx: xxx
+    192.168.64.3:
+      node_ip: "192.168.64.3"
+      advertise_address: ''
+      node_name: 'test-2'
+    192.168.64.5:
+      node_ip: "192.168.64.5"
+      advertise_address: ''
+      node_name: 'test-3'
+      add_node: false
+agent:
+  hosts:
+    192.168.64.6:
+      node_ip: "192.168.64.6"
+      advertise_address: ''
+      node_name: 'test-4'
+      remove_node: true
+      node_label:
+        - agent: 001
+        - agent1: 002
+      node_taint:
+        #- CriticalAddonsOnly: true:NoExecute
+      hosts_kubelet_arg:
+        #- max-pods: 100
+        - max-open-files: '1000000'
+
+################### 主机组配置参数说明 ###################
+all:
+  children:
+    # 以下定义主机组公共变量参数，如果有很多主机需要配置相同的参数，可以在这里为每个组统一配置，配置会自动传递给每台主机。
+
+    ####### 主机组 ssh 连接配置信息 #######
+    # ansible_ssh_port: ssh 端口
+    # ansible_ssh_user: ansible ssh 用户
+    # ansible_ssh_pass: ansible ssh 用户密码
+    # ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
+    # ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=ssh-key/xxxx-key
+
+    ####### 主机组 K8S 组件参数 #######
+    # groups_kubelet_arg: kubelet 扩展参数，agent 和 master 均支持。
+    # groups_kube_proxy_arg: kube-poryx 扩展参数，agent 和 master 均支持。
+    # groups_kube_scheduler_arg: kube-scheduler 扩展参数，仅 master 节点支持。
+    # groups_kube_apiserver_arg: kube-apiserver 扩展参数，仅 master 节点支持。
+    # groups_kube_controller_manager_arg: kube-controller_manager 扩展参数，仅 master 节点支持。
+    master:
+      vars:
+        groups_kubelet_arg:
+          - max-open-files: '1500000'
+    agent:
+      vars:
+        groups_kubelet_arg:
+          - max-pods: 150
+          - max-open-files: '2000000'
+        groups_kube_proxy_arg:
+          - proxy-mode: "ipvs"
+################### 全局配置参数说明 ###################
+  # 以下定义全局 主机访问认证 公共变量，如果所有主机都是相同账号密码或者 ssh key 登录认证，则可以在此配置统一的登录认证信息。
+  # ansible_ssh_port: ssh 端口
+  # ansible_ssh_user: ansible ssh 用户
+  # ansible_ssh_pass: ansible ssh 用户密码
+  # ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
+  # ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=/etc/ansible/ssh-key/xxxx-key
+  vars:
+    ansible_ssh_private_key_file: /etc/ansible/ssh-key/ssh-key
+    ansible_become: true
+    ansible_ssh_port: 22
+    ansible_ssh_user: ubuntu
+    #ansible_python_interpreter: /usr/bin/python3
+    ####### 全局 K8S 组件参数 #######
+    # 此处自定义全局的 K8S 组件参数，如果某个节点有不同参数（比如 Pod 数量），则可以在主机变量中定义 K8S 组件参数。
+    # 注意：全局 K8S 组件变量为 global_ 打头。
+    global_kubelet_arg:
+      - max-pods: 200
+      - max-open-files: '3000000'
+      - registry-burst: '10'
+      - serialize-image-pulls: 'false'
+      - enforce-node-allocatable: 'pods'
+      - feature-gates: CSIMigration=false
+    global_kube_proxy_arg:
+      - proxy-mode: "ipvs"
+    global_kube_apiserver_arg:
+        # 事件保留时间，默认1小时
+      - event-ttl: 1h0m0s
+        # kubelet操作超时，默认5s
+      - kubelet-timeout: 5s
+        #xxx: xxx
+    global_kube_controller_manager_arg:
+      # - xxx: xxx
+    global_kube_scheduler_arg:
+      # - xxx: xxx
+################### 以下为 rke2 相关的配置参数 ###################
+    rke2:
+      operation_type: install # install、upgrade、add-node、remove-node、uninstall、none
+      # 存储定义需要安装或者升级的 rke2 版本号
+      version: v1.18.12+rke2r2
+      # ha 模式下认证 token，可以自己生成随机字符串。
+      token: 'cb3f15296208900746630724cd86e561'
+      cloud_provider_name:
+      cloud_provider_config: ""
+      container_runtime_endpoint: ""
+      snapshotter: ""
+      # (security) Validate system configuration against the selected benchmark (valid items: cis-1.5)
+      profile: ""
+      server:
+        debug: false
+        config: /etc/rancher/rke2/master-config.yaml
+        write_kubeconfig: /root/.kube/config
+        bind-address: 0.0.0.0
+        # url: 用于 Agent 连接 Master 的 ip 或者域名，如果是 HA 模式，此地址应该为 master 前面的 VIP 地址。此配置只能设置一个地址。
+        url: 192.168.64.2
+        # url_tls_san: 因为 ssl 证书中会绑定 ip 或者域名，只有通过绑定的地址才可以访问。如果后期想更换另一个地址访问，则可以在此添加。此配置可以设置多个地址。
+        url_tls_san:
+          - 192.168.64.2
+          - www.test.com
+        # 禁用哪些服务安装，默认全部安装 (rke2-canal, rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
+        disable: ''
+        write_kubeconfig_mode: "0644"
+        cluster_domain: "cluster.local" # default: "cluster.local"
+        cluster_dns: "10.43.0.10" # default: 10.43.0.10
+        service_cidr: "10.43.0.0/16" # default: "10.43.0.0/16"
+        cluster_cidr: "10.42.0.0/16" # default: "10.42.0.0/16"
+        data_dir: /var/lib/rancher/rke2 # rke2 数据目录，默认: "/var/lib/rancher/rke2"
+        selinux: false
+        etcd_snapshot_dir: "${data-dir}/db/snapshots"
+        etcd_disable_snapshots: false
+        etcd_snapshot_retention: "5"
+        etcd_snapshot_schedule_cron: "0 */12 * * *"
+        secrets_encryption: ""
+        other_config:
+        #  xxx: xxx
+      agent:
+        config: /etc/rancher/rke2/agent-config.yaml
+        debug: false
+        selinux: false
+        data_dir: /var/lib/rancher/rke2 # rke2 数据目录，默认: "/var/lib/rancher/rke2"
+        other_config:
+        #  xxx: xxx
+################### 镜像仓库相关配置 ###################
+    system_default_registry: 'registry.cn-hangzhou.aliyuncs.com'
+
+    registry:
+      url: '' # url 不加协议头
+      mirror: # 具有协议头的完整地址，可以填写多个地址，比如：https://7bezldxe.mirror.aliyuncs.com
+      #  - https://7bezldxe.mirror.aliyuncs.com
+      agreement: 'https' # 仓库地址的协议头，http 或者 https
+      username: ''
+      password: ''
+      email: ''
+      # 对于使用自签名的镜像仓库，需要提供 CA 证书做认证，文件保存于 ssl 目录下，此处填写 ca 文件名称，比如: xxx-ca.pem。
+      ca_file: ''
+      # 如果镜像仓库启用了双向认证，需要在此处配置用于认证的 ssl 证书，文件保存于 ssl 目录下，此处填写证书文件名，比如: xxx-cert.pem。
+      cert_file: ''
+      key_file: ''
+################### 以下属于系统相关的优化配置，可自行修改 ###################
+    centos7_sysctl_list:
+      vm.panic_on_oom: 0
+      vm.overcommit_memory: 1
+      # 启用反向路径过滤器 (防止一些欺骗攻击)
+      net.ipv4.conf.all.rp_filter: 0
+      net.ipv4.conf.default.rp_filter: 0
+      # 启用TCP/IP SYN cookie (防止SYN泛滥攻击)
+      net.ipv4.tcp_syncookies: 1
+      # 调整网络设置
+      # 为每个套接字的发送和接收缓冲区分配的默认内存量。
+      net.core.wmem_default: 25165824
+      net.core.rmem_default: 25165824
+      # 为每个套接字的发送和接收缓冲区分配的最大内存量。
+      net.core.wmem_max: 25165824
+      net.core.rmem_max: 25165824
+      # 启用TCP窗口缩放，客户端可以更有效地传输数据，并允许在代理方缓冲该数据。
+      net.ipv4.tcp_window_scaling: 1
+      # 不要在关闭连接时缓存指标
+      net.ipv4.tcp_no_metrics_save: 1
+      # 启用 IP 转发
+      net.ipv4.ip_forward: 1
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.conf.all.forwarding: 1
+      net.ipv4.neigh.default.gc_thresh1: 128
+      net.ipv4.neigh.default.gc_thresh2: 6144
+      net.ipv4.neigh.default.gc_thresh3: 8192
+      net.ipv4.neigh.default.gc_interval: 60
+      net.ipv4.neigh.default.gc_stale_time: 60
+      # conntrack表
+      net.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_buckets: 262144
+      net.netfilter.nf_conntrack_tcp_timeout_fin_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_time_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_close_wait: 15
+      net.netfilter.nf_conntrack_tcp_timeout_established: 300
+      kernel.perf_event_paranoid: -1
+      kernel.softlockup_panic: 0
+      kernel.watchdog_thresh: 30
+      # 调高 PID 数量
+      kernel.pid_max: 65536
+      kernel.threads-max: 30938
+      kernel.sysrq: 1
+      kernel.panic: 10
+      kernel.panic_on_oops: 1
+      vm.swappiness: 0
+      net.ipv4.conf.default.promote_secondaries: 1
+      net.ipv4.conf.all.promote_secondaries: 1
+      net.ipv4.conf.default.arp_announce: 2
+      net.ipv4.conf.lo.arp_announce: 2
+      net.ipv4.conf.all.arp_announce: 2
+      net.ipv4.tcp_fin_timeout: 30
+      net.ipv4.tcp_synack_retries: 2
+      # 提高同时接受连接数。
+      net.ipv4.tcp_max_syn_backlog: 8096
+      # 将net.core.netdev_max_backlog的值增加到大于默认值1000
+      # 可以帮助突发网络流量，特别是在使用数千兆位网络连接速度时，
+      # 通过允许更多的数据包排队等待内核处理它们。
+      net.core.netdev_max_backlog: 65536
+      # 增加选项内存缓冲区的最大数量
+      net.core.optmem_max: 25165824
+      # 积压套接字的最大数量。
+      # Default is 128.
+      net.core.somaxconn: 32768
+      net.ipv4.tcp_tw_recycle: 0
+      # 持久连接
+      net.ipv4.tcp_keepalive_time: 600
+      net.ipv4.tcp_keepalive_intvl: 30
+      net.ipv4.tcp_keepalive_probes: 10
+      # 文件监控
+      fs.may_detach_mounts: 1
+      fs.inotify.max_user_watches: 1048576
+      fs.inotify.max_user_instances: 8192
+      fs.inotify.max_queued_events: 16384
+      fs.file-max: 20480000 # 系统中所有进程可以打开的最大的句柄数。
+      fs.nr_open: 10485760 # 单个进程可分配的最大句柄数，系统默认值为1048576，满足绝大部分需求，一般不做修改。
+      fs.suid_dumpable: 0
+    centos8_sysctl_list:
+      vm.panic_on_oom: 0
+      vm.overcommit_memory: 1
+      # 启用反向路径过滤器 (防止一些欺骗攻击)
+      net.ipv4.conf.all.rp_filter: 0
+      net.ipv4.conf.default.rp_filter: 0
+      # 启用TCP/IP SYN cookie (防止SYN泛滥攻击)
+      net.ipv4.tcp_syncookies: 1
+      # 调整网络设置
+      # 为每个套接字的发送和接收缓冲区分配的默认内存量。
+      net.core.wmem_default: 25165824
+      net.core.rmem_default: 25165824
+      # 为每个套接字的发送和接收缓冲区分配的最大内存量。
+      net.core.wmem_max: 25165824
+      net.core.rmem_max: 25165824
+      # 启用TCP窗口缩放，客户端可以更有效地传输数据，并允许在代理方缓冲该数据。
+      net.ipv4.tcp_window_scaling: 1
+      # 启用 IP 转发
+      net.ipv4.ip_forward: 1
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.conf.all.forwarding: 1
+      net.ipv4.neigh.default.gc_thresh1: 128
+      net.ipv4.neigh.default.gc_thresh2: 6144
+      net.ipv4.neigh.default.gc_thresh3: 8192
+      net.ipv4.neigh.default.gc_interval: 60
+      net.ipv4.neigh.default.gc_stale_time: 60
+      # conntrack表
+      net.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_buckets: 262144
+      net.netfilter.nf_conntrack_tcp_timeout_fin_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_time_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_close_wait: 15
+      net.netfilter.nf_conntrack_tcp_timeout_established: 300
+      kernel.perf_event_paranoid: -1
+      kernel.softlockup_panic: 0
+      kernel.watchdog_thresh: 30
+      kernel.panic: 10
+      kernel.panic_on_oops: 1
+      # 调高 PID 数量
+      kernel.pid_max: 65536
+      kernel.threads-max: 30938
+      kernel.sysrq: 1
+      vm.swappiness: 0
+      net.ipv4.conf.default.promote_secondaries: 1
+      net.ipv4.conf.all.promote_secondaries: 1
+      net.ipv4.conf.default.arp_announce: 2
+      net.ipv4.conf.lo.arp_announce: 2
+      net.ipv4.conf.all.arp_announce: 2
+      net.ipv4.tcp_fin_timeout: 30
+      net.ipv4.tcp_synack_retries: 2
+      # 提高同时接受连接数。
+      net.ipv4.tcp_max_syn_backlog: 8096
+      # 将net.core.netdev_max_backlog的值增加到大于默认值1000
+      # 可以帮助突发网络流量，特别是在使用数千兆位网络连接速度时，
+      # 通过允许更多的数据包排队等待内核处理它们。
+      net.core.netdev_max_backlog: 65536
+      # 增加选项内存缓冲区的最大数量
+      net.core.optmem_max: 25165824
+      # 积压套接字的最大数量。
+      # Default is 128.
+      net.core.somaxconn: 32768
+      # 不要在关闭连接时缓存指标
+      net.ipv4.tcp_no_metrics_save: 1
+      # 持久连接
+      net.ipv4.tcp_keepalive_time: 600
+      net.ipv4.tcp_keepalive_intvl: 30
+      net.ipv4.tcp_keepalive_probes: 10
+      # 文件监控
+      fs.may_detach_mounts: 1
+      fs.inotify.max_user_instances: 8192
+      fs.inotify.max_queued_events: 16384
+      fs.inotify.max_user_watches: 1048576
+      fs.file-max: 20480000 # 系统中所有进程可以打开的最大的句柄数。
+      fs.nr_open: 10485760 # 单个进程可分配的最大句柄数，系统默认值为1048576，满足绝大部分需求，一般不做修改。
+      fs.suid_dumpable: 0
+    ubuntu_sysctl_list:
+      vm.panic_on_oom: 0
+      # vm.dirty_background_ratio 用于调整内核如何处理必须刷新到磁盘的脏页。
+      # Default value is 10.
+      # 该值是系统内存总量的百分比，在许多情况下将此值设置为5是合适的。
+      # 此设置不应设置为零。
+      vm.dirty_background_ratio: 5
+      # 内核强制同步操作将其刷新到磁盘之前允许的脏页总数
+      # 也可以通过更改 vm.dirty_ratio 的值（将其增加到默认值30以上（也占系统内存的百分比））来增加
+      # 推荐 vm.dirty_ratio 的值在60到80之间。
+      vm.dirty_ratio: 60
+      # vm.max_map_count 计算当前的内存映射文件数。
+      # mmap 限制（vm.max_map_count）的最小值是打开文件的ulimit数量（cat /proc/sys/fs/file-max）。
+      # 每128KB系统内存 map_count应该大约为1。 因此，在32GB系统上，max_map_count为262144。
+      # Default: 65530
+      vm.max_map_count: 2097152
+      vm.overcommit_memory: 1
+      kernel.panic: 10
+      kernel.panic_on_oops: 1
+      kernel.perf_event_paranoid: -1
+      kernel.softlockup_panic: 0
+      kernel.watchdog_thresh: 30
+      kernel.sysrq: 1
+      # 调高 PID 数量
+      kernel.pid_max: 65536
+      kernel.threads-max: 30938
+      net.ipv4.ip_forward: 1
+      # 不要在关闭连接时缓存指标
+      net.ipv4.tcp_no_metrics_save: 1
+      # 调整网络设置
+      # 为每个套接字的发送和接收缓冲区分配的默认内存量。
+      net.core.wmem_default: 25165824
+      net.core.rmem_default: 25165824
+      # 为每个套接字的发送和接收缓冲区分配的最大内存量。
+      net.core.wmem_max: 25165824
+      net.core.rmem_max: 25165824
+      # 启用TCP窗口缩放，客户端可以更有效地传输数据，并允许在代理方缓冲该数据。
+      net.ipv4.tcp_window_scaling: 1
+      # 启用反向路径过滤器 (防止一些欺骗攻击)
+      net.ipv4.conf.all.rp_filter: 0
+      net.ipv4.conf.default.rp_filter: 0
+      # 启用TCP/IP SYN cookie (防止SYN泛滥攻击)
+      net.ipv4.tcp_syncookies: 1
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.conf.all.forwarding: 1
+      net.ipv4.neigh.default.gc_thresh1: 128
+      net.ipv4.neigh.default.gc_thresh2: 6144
+      net.ipv4.neigh.default.gc_thresh3: 8192
+      net.ipv4.neigh.default.gc_interval: 60
+      net.ipv4.neigh.default.gc_stale_time: 60
+      # conntrack表
+      net.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_max: 1048576
+      net.netfilter.nf_conntrack_buckets: 262144
+      net.netfilter.nf_conntrack_tcp_timeout_fin_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_time_wait: 30
+      net.netfilter.nf_conntrack_tcp_timeout_close_wait: 15
+      net.netfilter.nf_conntrack_tcp_timeout_established: 300
+      # 持久连接
+      net.ipv4.tcp_keepalive_time: 600
+      net.ipv4.tcp_keepalive_intvl: 30
+      net.ipv4.tcp_keepalive_probes: 10
+      vm.swappiness: 0
+      net.ipv4.conf.default.promote_secondaries: 1
+      net.ipv4.conf.all.promote_secondaries: 1
+      net.ipv4.conf.default.arp_announce: 2
+      net.ipv4.conf.lo.arp_announce: 2
+      net.ipv4.conf.all.arp_announce: 2
+      net.ipv4.tcp_fin_timeout: 30
+      net.ipv4.tcp_synack_retries: 2
+      # 提高同时接受连接数。
+      net.ipv4.tcp_max_syn_backlog: 8096
+      # 将net.core.netdev_max_backlog的值增加到大于默认值1000
+      # 可以帮助突发网络流量，特别是在使用数千兆位网络连接速度时，
+      # 通过允许更多的数据包排队等待内核处理它们。
+      net.core.netdev_max_backlog: 65536
+      # 增加选项内存缓冲区的最大数量
+      net.core.optmem_max: 25165824
+      # 积压套接字的最大数量。
+      # Default is 128.
+      net.core.somaxconn: 32768
+      # 文件监控
+      fs.may_detach_mounts: 1
+      fs.inotify.max_user_watches: 1048576
+      fs.inotify.max_user_instances: 8192
+      fs.inotify.max_queued_events: 16384
+      # 增加文件句柄和inode缓存的大小，并限制核心转储。
+      fs.file-max: 20480000 # 系统中所有进程可以打开的最大的文件数。
+      fs.nr_open: 10485760 # 单个进程可分配的最大文件数，系统默认值为1048576，满足绝大部分需求，一般不做修改。
+      fs.suid_dumpable: 0
+    nofile_soft_ulimit_list:
+      '*': 10240000
+      root: 10240000
+    nofile_hard_ulimit_list:
+      '*': 10250000
+      root: 10250000
+    node_dns_list: # 如果有内部 DNS 服务器，则修改此处配置，如果没有则保持默认。
+      - 114.114.114.114
+      - 1.2.4.8
+    etcdctl_env:
+      - export ETCDCTL_API=3
+      - export ETCDCTL_DIAL_TIMEOUT=10s
+      - export ETCDCTL_ENDPOINT=https://127.0.0.1:2379
+      - export ETCDCTL_CERT=/var/lib/rancher/rke2/server/tls/etcd/client.crt
+      - export ETCDCTL_KEY=/var/lib/rancher/rke2/server/tls/etcd/client.key
+      - export ETCDCTL_CACERT=/var/lib/rancher/rke2/server/tls/etcd/server-ca.crt
