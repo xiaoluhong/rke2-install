@@ -22,7 +22,6 @@
 # role: 定义 K8S 集群节点角色，master 或者 agent。
 # node_label: 节点标签，数组形式，例如：- test: true
 # node_taint: 节点污点，数组形式，例如：- "CriticalAddonsOnly: true:NoExecute"
-# init_server: true/false，HA 模式下，必须要有一个 master 节点为 init server，并且只能有一个 master 节点为 init server，其他 master 节点会连接此节点组建 master 集群。
 # add_node: true/false。新的节点设置为 true，将会自动添加到集群。
 # remove_node: true，如果要删除某个节点，在节点中定义 remove 为 true。
 
@@ -35,20 +34,19 @@
 
 ####### 主机 ssh 连接配置信息 #######
 # ansible_ssh_port: ssh 端口
-# ansible_ssh_user: ansible ssh 用户
+# ansible_user: ansible ssh 用户
 # ansible_ssh_pass: ansible ssh 用户密码
 # ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
 # ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=ssh-key/xxxx-key
 
-master: # 定义主机组，也可以当做集群名
+init_master: # 这个主机组中只能放一台主机作为 init master。
   hosts:
     192.168.64.2:
       node_ip: "192.168.64.2"
       advertise_address: ''
-      node_name: 'test-1'
+      node_name: 'test-2'
       node_label:
         - master: 001
-      init_server: true
       hosts_kubelet_arg:
       #  - max-pods: 60
       hosts_kube_proxy_arg:
@@ -59,22 +57,24 @@ master: # 定义主机组，也可以当做集群名
       # - xxx: xxx
       hosts_kube_controller_manager_arg:
       # - xxx: xxx
+master: # 定义主机组，也可以当做集群名
+  hosts:
     192.168.64.3:
       node_ip: "192.168.64.3"
       advertise_address: ''
-      node_name: 'test-2'
+      node_name: 'test-3'
     192.168.64.5:
       node_ip: "192.168.64.5"
       advertise_address: ''
-      node_name: 'test-3'
-      add_node: false
+      node_name: 'test-5'
+      add_node: true
+      remove_node: true
 agent:
   hosts:
     192.168.64.6:
       node_ip: "192.168.64.6"
       advertise_address: ''
-      node_name: 'test-4'
-      remove_node: true
+      node_name: 'test-6'
       node_label:
         - agent: 001
         - agent1: 002
@@ -91,7 +91,7 @@ all:
 
     ####### 主机组 ssh 连接配置信息 #######
     # ansible_ssh_port: ssh 端口
-    # ansible_ssh_user: ansible ssh 用户
+    # ansible_user: ansible ssh 用户
     # ansible_ssh_pass: ansible ssh 用户密码
     # ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
     # ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=ssh-key/xxxx-key
@@ -102,6 +102,8 @@ all:
     # groups_kube_scheduler_arg: kube-scheduler 扩展参数，仅 master 节点支持。
     # groups_kube_apiserver_arg: kube-apiserver 扩展参数，仅 master 节点支持。
     # groups_kube_controller_manager_arg: kube-controller_manager 扩展参数，仅 master 节点支持。
+    init_master:
+      vars:
     master:
       vars:
         groups_kubelet_arg:
@@ -116,7 +118,7 @@ all:
 ################### 全局配置参数说明 ###################
   # 以下定义全局 主机访问认证 公共变量，如果所有主机都是相同账号密码或者 ssh key 登录认证，则可以在此配置统一的登录认证信息。
   # ansible_ssh_port: ssh 端口
-  # ansible_ssh_user: ansible ssh 用户
+  # ansible_user: ansible ssh 用户
   # ansible_ssh_pass: ansible ssh 用户密码
   # ansible_become_pass: sudo 权限密码。如果 sudo 没有配置免密，则需要设置此密码
   # ansible_ssh_private_key: 如果节点使用 ssh key 认证登录，需要将 ssh key 存放在 ssh-key/ 目录下，配置格式为 ansible_ssh_private_key=/etc/ansible/ssh-key/xxxx-key
@@ -124,7 +126,7 @@ all:
     ansible_ssh_private_key_file: /etc/ansible/ssh-key/ssh-key
     ansible_become: true
     ansible_ssh_port: 22
-    ansible_ssh_user: ubuntu
+    ansible_user: ubuntu
     #ansible_python_interpreter: /usr/bin/python3
     ####### 全局 K8S 组件参数 #######
     # 此处自定义全局的 K8S 组件参数，如果某个节点有不同参数（比如 Pod 数量），则可以在主机变量中定义 K8S 组件参数。
@@ -148,11 +150,12 @@ all:
       # - xxx: xxx
     global_kube_scheduler_arg:
       # - xxx: xxx
+
 ################### 以下为 rke2 相关的配置参数 ###################
     rke2:
-      operation_type: install # install、upgrade、add-node、remove-node、uninstall、none
+      operation_type: install # install、upgrade、add-master-node、add-agent-node、remove-node、uninstall、none
       # 存储定义需要安装或者升级的 rke2 版本号
-      version: v1.18.12+rke2r2
+      version: v1.19.5+rke2r1
       # ha 模式下认证 token，可以自己生成随机字符串。
       token: 'cb3f15296208900746630724cd86e561'
       cloud_provider_name:
@@ -164,13 +167,14 @@ all:
       server:
         debug: false
         config: /etc/rancher/rke2/master-config.yaml
-        write_kubeconfig: /root/.kube/config
+        write_kubeconfig: /root/.kube/config # 此路径不建议修改
         bind-address: 0.0.0.0
         # url: 用于 Agent 连接 Master 的 ip 或者域名，如果是 HA 模式，此地址应该为 master 前面的 VIP 地址。此配置只能设置一个地址。
-        url: 192.168.64.2
+        # 9345 端口不能修改
+        url: '192.168.64.10:9345'
         # url_tls_san: 因为 ssl 证书中会绑定 ip 或者域名，只有通过绑定的地址才可以访问。如果后期想更换另一个地址访问，则可以在此添加。此配置可以设置多个地址。
         url_tls_san:
-          - 192.168.64.2
+          - 192.168.64.10
           - www.test.com
         # 禁用哪些服务安装，默认全部安装 (rke2-canal, rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
         disable: ''
@@ -186,15 +190,16 @@ all:
         etcd_snapshot_retention: "5"
         etcd_snapshot_schedule_cron: "0 */12 * * *"
         secrets_encryption: ""
-        other_config:
+        other_config: # 其他配置，访问 https://docs.rke2.io/install/install_options/server_config/ 了解更多
         #  xxx: xxx
       agent:
         config: /etc/rancher/rke2/agent-config.yaml
         debug: false
         selinux: false
         data_dir: /var/lib/rancher/rke2 # rke2 数据目录，默认: "/var/lib/rancher/rke2"
-        other_config:
+        other_config: # 其他配置，访问 https://docs.rke2.io/install/install_options/agent_config/ 了解更多
         #  xxx: xxx
+
 ################### 镜像仓库相关配置 ###################
     system_default_registry: 'registry.cn-hangzhou.aliyuncs.com'
 

@@ -1,4 +1,11 @@
 ---
+- name: '步骤: 停止 rke2 服务'
+  shell: "{{ item }}"
+  with_items:
+    - systemctl stop rke2-server.service; > /dev/null 2>&1; echo $?;
+    - systemctl stop rke2-agent.service; > /dev/null 2>&1; echo $?;
+  tags: []
+
 - name: '步骤: 卸载 rke2'
   shell: "{{ item }}"
   with_items:

@@ -1,13 +1,13 @@
-{% if init_server is undefined or init_server|bool != true %}
-{% for host in groups['master'] %}
-{% if hostvars[host]['init_server'] is defined and hostvars[host]['init_server']|bool == true %}
-server: https://{{ host|regex_replace('\'', '')|regex_replace('\"', '') }}:9345
+{% if inventory_hostname not in groups['init_master'] %}
+{% if rke2.server.url is defined and rke2.server.url|default([]) %}
+server: https://{{ rke2.server.url }}
 {% endif %}
-{% endfor %}
 {% endif %}
+
 {% if rke2.token is defined and rke2.token|default([]) %}
 token: {{ rke2.token|regex_replace('\'', '')|regex_replace('\"', '') }}
 {% endif %}
+
 {% if rke2.server.config is defined and rke2.server.config |default([]) %}
 config: {{ rke2.server.config }}
 {% endif %}
@@ -41,7 +41,9 @@ cluster-dns: {{ rke2.server.cluster_dns }}
 cluster-domain: {{ rke2.server.cluster_domain }}
 {% endif %}
 
-write-kubeconfig: /home/{{ ansible_ssh_user }}/.kube/config
+{% if rke2.server.write_kubeconfig is defined and rke2.server.write_kubeconfig |default([]) %}
+write-kubeconfig: {{ rke2.server.write_kubeconfig }}
+{% endif %}
 
 {% if rke2.server.write_kubeconfig_mode is defined and rke2.server.write_kubeconfig_mode |default([]) %}
 write-kubeconfig-mode: {{ rke2.server.write_kubeconfig_mode }}

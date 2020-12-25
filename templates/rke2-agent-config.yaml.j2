@@ -8,7 +8,7 @@ token: {{ rke2.token }}
 {% endif %}
 
 {% if rke2.server.url is defined and rke2.server.url|default([]) %}
-server: https://{{ rke2.server.url }}:9345
+server: https://{{ rke2.server.url }}
 {% endif %}
 
 {% if rke2.agent.debug is defined and rke2.agent.debug|bool == true %}

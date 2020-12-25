@@ -1,0 +1,34 @@
+#- name: '步骤: 拷贝通用文件'
+#  include_role:
+#    name: 'files-copy'
+#- name: '步骤: 环境配置检测件'
+#  include_role:
+#    name: 'env-check'
+#- name: '步骤: 生成 rke k8s 配置'
+#  include_role:
+#    name: 'config'
+
+- name: '步骤: 停止 Init Matser'
+  shell: 'systemctl stop rke2-server.service'
+  tags: init-matser
+
+- name: '步骤: 拷贝 rke2 二进制文件到指定目录'
+  shell: 'cp -rf /tmp/rke2 /usr/local/bin/rke2'
+
+- name: '步骤: 重启 Init Matser'
+  shell: 'systemctl restart rke2-server.service; systemctl enable rke2-server.service'
+
+- name: '步骤: 等待 Init Matser 完成重启'
+  shell: if [ "$(/var/lib/rancher/rke2/bin/kubectl --kubeconfig=/etc/rancher/rke2/rke2.yaml get no > /dev/null 2>&1; echo $?)" = '0' ]; then echo 0; fi
+  register: result
+  until: result.stdout == '0'
+  delay: 6
+  retries: 4000
+
+- name: '步骤: 复制 kubeconfig 文件到 kubectl 默认配置路径'
+  shell: "{{ item }}"
+  with_items:
+    - touch /home/{{ ansible_user }}/.kube/config;
+    - cat /etc/rancher/rke2/rke2.yaml > /home/{{ ansible_user }}/.kube/config;
+    - chmod 777 /home/{{ ansible_user }}/.kube/config;
+  tags: []

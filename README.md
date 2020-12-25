@@ -18,4 +18,4 @@
 
 ## 操作类型
 
-在 hosts.yaml 文件的 `rke2.operation_type` 处定义操作类型，install、upgrade、add-node、remove-node、uninstall、none。
+在 hosts.yaml 文件的 `rke2.operation_type` 处定义操作类型，install、upgrade、add-master-node、add-agent-node、remove-node、uninstall、none

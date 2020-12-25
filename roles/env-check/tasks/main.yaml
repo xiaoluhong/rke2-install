@@ -4,7 +4,8 @@
     path: "{{ item }}"
     state: directory
   with_items:
-    - ~/.kube/
+    - /home/{{ ansible_user }}/.kube/
+    - /root/.kube/
     - /etc/rancher/rke2/ssl/
     - /var/lib/rancher/rke2/server/manifests/
     - /var/lib/rancher/rke2/agent/images/
@@ -280,7 +281,7 @@
     - source <(crictl completion bash)
     - source <(kubectl completion bash)
 
-- name: '步骤: etcdctl 自动补全和相关环境变量设置'
+- name: '步骤: master 节点 etcdctl 自动补全和相关环境变量设置'
   lineinfile:
     dest: /etc/profile
     line: "{{item}}"
@@ -288,5 +289,4 @@
   with_items:
     - '[[ $PS1 && -f /usr/share/bash-completion/etcdctl_bash_completion ]] && . /usr/share/bash-completion/etcdctl_bash_completion'
     - "{{ etcdctl_env }}"
-  when: inventory_hostname in groups['master']
-
+  when: inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']

@@ -2,18 +2,18 @@
 #  debug:
 #    msg: ls
 
-- name: '步骤: 拷贝通用文件'
-  include_role:
-    name: 'files-copy'
-- name: '步骤: 环境配置检测件'
-  include_role:
-    name: 'env-check'
-- name: '步骤: 生成 rke k8s 配置'
-  include_role:
-    name: 'config'
+#- name: '步骤: 拷贝通用文件'
+#  include_role:
+#    name: 'files-copy'
+#- name: '步骤: 环境配置检测件'
+#  include_role:
+#    name: 'env-check'
+#- name: '步骤: 生成 rke k8s 配置'
+#  include_role:
+#    name: 'config'
 
 - name: '步骤: 等待 rke2 server 可用'
-  shell: curl -kSsL https://{{ rke2.server.url }}:9345/cacerts | grep 'BEGIN.*.CERTIFICATE' > /dev/null 2>&1; echo $?
+  shell: curl -kSsL https://{{ rke2.server.url }}/cacerts | grep 'BEGIN.*.CERTIFICATE' > /dev/null 2>&1; echo $?
   register: state_results
   until: state_results.stdout|int == 0
   delay: 6

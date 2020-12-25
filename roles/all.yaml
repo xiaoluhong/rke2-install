@@ -1,74 +1,92 @@
 ---
 - name: '任务: Gather_facts 获取主机信息'
-  hosts: "master,agent"
+  hosts: "all"
 
-#- name: '任务: Debug'
-#  hosts: "master,agent"
-#  tasks:
-#  - debug: var=vars
-#  tags: debug,never
+- name: '任务: Debug'
+  hosts: "all"
+  tasks:
+  - debug: var=ansible_user
+  tags: debug,never
 
-# 安装 init_server
-- name: '任务: 安装/升级 Init Server'
-  hosts: "master"
+- name: '任务: 拷贝通用文件'
+  hosts: "all"
+  gather_facts: false
+  roles:
+  - { role: 'files-copy', tags: 'files-copy', when: rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
+
+- name: '任务: 环境检查'
+  hosts: "all"
+  gather_facts: false
+  roles:
+  - { role: 'env-check', tags: 'env-check', when: rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
+
+- name: '任务: 生成或者更新配置'
+  hosts: "all"
+  gather_facts: false
+  roles:
+  - { role: 'config', tags: 'config', when: rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
+
+# 安装 Init Master
+- name: '任务: 安装/升级 Init Master'
+  hosts: "init_master"
   serial: 1
   roles:
-  - { role: 'init-server', tags: 'init-server', when: init_server is defined and init_server|bool == true and rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
+  - { role: 'init-master', tags: 'init-master', when: rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
 
-# 安装/升级 其他 Matser 节点
-- name: '任务: 安装 其他 Master'
-  hosts: "master"
-  gather_facts: false
-#  serial: 1
-  roles:
-  - { role: 'server', tags: 'server', when: (init_server is undefined or init_server|bool != true) and rke2.operation_type is defined and rke2.operation_type == 'install' }
-
-- name: '任务: 升级 其他 Master'
+# 安装/升级 Matser 节点
+- name: '任务: 安装 Master'
   hosts: "master"
   gather_facts: false
   serial: 1
   roles:
-  - { role: 'server', tags: 'server', when: (init_server is undefined or init_server|bool != true) and rke2.operation_type is defined and rke2.operation_type == 'upgrade' }
+  - { role: 'master', tags: 'master', when: rke2.operation_type is defined and rke2.operation_type == 'install' }
+
+- name: '任务: 升级 Master'
+  hosts: "master"
+  gather_facts: false
+  serial: 1
+  roles:
+  - { role: 'master', tags: 'master', when: rke2.operation_type is defined and rke2.operation_type == 'upgrade' }
 
 # 安装/升级 Agent 节点
 - name: '任务: 安装 Agent 节点'
   hosts: "agent"
   gather_facts: false
   roles:
-  - { role: 'agent', tags: 'agent', when: (init_server is undefined or init_server|bool != true) and rke2.operation_type is defined and rke2.operation_type == 'install' }
+  - { role: 'agent', tags: 'agent', when: rke2.operation_type is defined and rke2.operation_type == 'install' }
 
 - name: '任务: 升级 Agent 节点'
   hosts: "agent"
   gather_facts: false
   serial: 1
   roles:
-  - { role: 'agent', tags: 'agent', when: (init_server is undefined or init_server|bool != true) and rke2.operation_type is defined and rke2.operation_type == 'upgrade' }
+  - { role: 'agent', tags: 'agent', when: rke2.operation_type is defined and rke2.operation_type == 'upgrade' }
 
-## 添加 master 节点
+## 添加 Matser 节点
 - name: '任务: 添加 Master'
   hosts: "master"
   gather_facts: false
-#  serial: 1
+  serial: 1
   roles:
-  - { role: 'add-master-node', tags: 'add-node', when: rke2.operation_type is defined and rke2.operation_type == 'add-node' }
+  - { role: 'add-master-node', tags: 'add-master-node', when: rke2.operation_type is defined and rke2.operation_type == 'add-master-node' }
 
 ## 添加 Agent 节点
 - name: '任务: 添加 Agent'
   hosts: "agent"
   gather_facts: false
   roles:
-  - { role: 'add-agent-node', tags: 'add-node', when: rke2.operation_type is defined and rke2.operation_type == 'add-node' }
+  - { role: 'add-agent-node', tags: 'add-agent-node', when: rke2.operation_type is defined and rke2.operation_type == 'add-agent-node' }
 
 # 删除节点
 - name: '任务: 删除节点'
-  hosts: "master,agent"
+  hosts: "all"
   gather_facts: false
   roles:
-  - { role: 'remove-node', tags: 'remove-node,never' }
+  - { role: 'remove-node', tags: 'remove-node', when: rke2.operation_type is defined and rke2.operation_type == 'remove-node' }
 
 # 卸载
 - name: '任务: 卸载集群'
-  hosts: "master,agent"
+  hosts: "all"
   gather_facts: false
   roles:
-  - { role: 'uninstall', tags: 'uninstall,never' }
+  - { role: 'uninstall', tags: 'uninstall', when: rke2.operation_type is defined and rke2.operation_type == 'uninstall' }

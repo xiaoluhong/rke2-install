@@ -35,4 +35,5 @@
 
 - name: "步骤: 从 rke2 k8s 集群中删除节点: {% for host in groups['all'] %}{% if hostvars[host]['remove_node'] is defined and hostvars[host]['remove_node']|bool == true %}{{ hostvars[host].node_name }}{% endif %}{% endfor %}"
   shell: /var/lib/rancher/rke2/bin/kubectl delete node {% for host in groups['all'] %}{% if hostvars[host]['remove_node'] is defined and hostvars[host]['remove_node']|bool == true %}{{ hostvars[host].node_name }}{% endif %}{% endfor %}
-  when:  hostvars[inventory_hostname].init_server is defined and hostvars[inventory_hostname].init_server|bool == true
+  when:  inventory_hostname in groups['init_master']
+  tags: []
