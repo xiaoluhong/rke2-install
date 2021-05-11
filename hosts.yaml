@@ -16,8 +16,8 @@
 # sh start.sh --tags=uninstall 卸载集群
 
 ################### 主机 配置参数说明 ###################
-# advertise_address: apiserver 用于向集群成员发布消息的通告地址，默认与 node-ip 相同，一般不用配置。
-# node_ip: 节点之间 advertise ip。
+# advertise_address: apiserver 用于向集群成员发布消息的通告地址，默认与 node-external-ip/node-ip 相同，一般不用配置。
+# node_external_ip: 节点之间 advertise ip。
 # node_name: 节点名称。
 # role: 定义 K8S 集群节点角色，master 或者 agent。
 # node_label: 节点标签，数组形式，例如：- test: true
@@ -41,10 +41,9 @@
 
 init_master: # 这个主机组中只能放一台主机作为 init master。
   hosts:
-    192.168.64.2:
-      node_ip: "192.168.64.2"
+    172.16.129.18:
       advertise_address: ''
-      node_name: 'test-2'
+      node_name: 'box-1'
       node_label:
         - master: 001
       hosts_kubelet_arg:
@@ -59,22 +58,20 @@ init_master: # 这个主机组中只能放一台主机作为 init master。
       # - xxx: xxx
 master: # 定义主机组，也可以当做集群名
   hosts:
-    192.168.64.3:
-      node_ip: "192.168.64.3"
+    172.16.129.19:
       advertise_address: ''
-      node_name: 'test-3'
-    192.168.64.5:
-      node_ip: "192.168.64.5"
+      node_name: 'box-2'
+    172.16.129.20:
+      node_ip: "172.16.129.20"
       advertise_address: ''
-      node_name: 'test-5'
+      node_name: 'box-3'
       add_node: true
-      remove_node: true
+#      remove_node: false
 agent:
   hosts:
-    192.168.64.6:
-      node_ip: "192.168.64.6"
+    172.16.129.21:
       advertise_address: ''
-      node_name: 'test-6'
+      node_name: 'box-4'
       node_label:
         - agent: 001
         - agent1: 002
@@ -126,7 +123,7 @@ all:
     ansible_ssh_private_key_file: /etc/ansible/ssh-key/ssh-key
     ansible_become: true
     ansible_ssh_port: 22
-    ansible_user: ubuntu
+    ansible_user: root
     #ansible_python_interpreter: /usr/bin/python3
     ####### 全局 K8S 组件参数 #######
     # 此处自定义全局的 K8S 组件参数，如果某个节点有不同参数（比如 Pod 数量），则可以在主机变量中定义 K8S 组件参数。
@@ -154,8 +151,8 @@ all:
 ################### 以下为 rke2 相关的配置参数 ###################
     rke2:
       operation_type: install # install、upgrade、add-master-node、add-agent-node、remove-node、uninstall、none
-      # 存储定义需要安装或者升级的 rke2 版本号
-      version: v1.19.5+rke2r1
+      # 定义需要安装或者升级的 rke2 版本号
+      version: v1.20.6+rke2r1
       # ha 模式下认证 token，可以自己生成随机字符串。
       token: 'cb3f15296208900746630724cd86e561'
       cloud_provider_name:
@@ -171,10 +168,10 @@ all:
         bind-address: 0.0.0.0
         # url: 用于 Agent 连接 Master 的 ip 或者域名，如果是 HA 模式，此地址应该为 master 前面的 VIP 地址。此配置只能设置一个地址。
         # 9345 端口不能修改
-        url: '192.168.64.10:9345'
+        url: '172.16.129.18:9345'
         # url_tls_san: 因为 ssl 证书中会绑定 ip 或者域名，只有通过绑定的地址才可以访问。如果后期想更换另一个地址访问，则可以在此添加。此配置可以设置多个地址。
         url_tls_san:
-          - 192.168.64.10
+          - 172.16.129.18
           - www.test.com
         # 禁用哪些服务安装，默认全部安装 (rke2-canal, rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
         disable: ''

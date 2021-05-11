@@ -10,10 +10,10 @@ WantedBy=multi-user.target
 
 [Service]
 OOMScoreAdjust=-1000
-ExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT
-EnvironmentFile=-/etc/default/rke2-server
-EnvironmentFile=-/etc/sysconfig/rke2-server
-EnvironmentFile=-/usr/local/lib/systemd/system/rke2-server.env
+ExecStartPost=/bin/sh -c "if [ -f "/sbin/iptables" ]; then /sbin/iptables -P FORWARD ACCEPT; fi; if [ -f "/usr/sbin/iptables" ]; then /usr/sbin/iptables -P FORWARD ACCEPT; fi;"
+EnvironmentFile=-/etc/default/%N
+EnvironmentFile=-/etc/sysconfig/%N
+EnvironmentFile=-/usr/local/lib/systemd/system/%N.env
 KillMode=process
 Delegate=yes
 LimitNOFILE=1048576
@@ -26,3 +26,4 @@ RestartSec=5s
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
 ExecStart=/usr/local/bin/rke2 server --config /etc/rancher/rke2/master-config.yaml
+ExecStopPost=-/bin/sh -c "systemd-cgls /system.slice/%n | grep -Eo '[0-9]+ (containerd|kubelet)' | awk '{print $1}' | xargs -r kill"

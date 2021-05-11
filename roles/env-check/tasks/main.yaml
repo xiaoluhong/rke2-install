@@ -11,6 +11,7 @@
     - /var/lib/rancher/rke2/agent/images/
     - /var/lib/rancher/rke2/agent/pod-manifests/
     - /var/lib/rancher/rke2/agent/etc/containerd/
+    - /usr/local/lib/systemd/system/
 
 - name: '步骤: 临时禁用 SELinux'
   shell: 'setenforce 0 > /dev/null 2>&1; echo $?;'

@@ -67,6 +67,14 @@
   tags: [ master-config,agent-config,config,registries ]
   when: []
 
+# 生成 kube proxy 自定义配置
+- name: '步骤: 生成 kube proxy 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-kube-proxy-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-kube-proxy-config.yaml
+  tags: [ master-config,config ]
+  when: inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
 - name: '步骤: 去除配置文件中的空行'
   shell: "{{ item }}"
   with_items:

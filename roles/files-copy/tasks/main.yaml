@@ -11,6 +11,7 @@
     - /var/lib/rancher/rke2/agent/images/
     - /var/lib/rancher/rke2/agent/pod-manifests/
     - /var/lib/rancher/rke2/agent/etc/containerd/
+    - /usr/local/lib/systemd/system/
 
 # 拷贝 rke2 二进制文件和 systemd service 文件
 - name: '步骤: 拷贝 rke2 二进制文件 和 master systemd service 文件'
@@ -27,6 +28,7 @@
     - { src: '/etc/ansible/bin/rke2-killall.sh', dest: '/usr/local/bin/rke2-killall.sh', mode: 755}
     - { src: '/etc/ansible/bin/rke2-uninstall.sh', dest: '/usr/local/bin/rke2-uninstall.sh', mode: 755}
     - { src: '/etc/ansible/bin/rke2-server.service', dest: '/lib/systemd/system/rke2-server.service', mode: 644}
+    - { src: '/etc/ansible/bin/rke2-server.env', dest: '/usr/local/lib/systemd/system/rke2-server.env', mode: 644}
     - { src: '/etc/ansible/templates/crictl.yaml.j2', dest: '/etc/crictl.yaml', mode: 644}
     - { src: '/etc/ansible/templates/containerd-config.toml.tmpl.j2', dest: '/var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl', mode: 644}
   tags: [ file-copy ]
@@ -42,6 +44,7 @@
     - { src: '/etc/ansible/bin/rke2-killall.sh', dest: '/usr/local/bin/rke2-killall.sh', mode: 755}
     - { src: '/etc/ansible/bin/rke2-uninstall.sh', dest: '/usr/local/bin/rke2-uninstall.sh', mode: 755}
     - { src: '/etc/ansible/bin/rke2-agent.service', dest: '/lib/systemd/system/rke2-agent.service', mode: 644}
+    - { src: '/etc/ansible/bin/rke2-agent.env', dest: '/usr/local/lib/systemd/system/rke2-agent.env', mode: 644}
     - { src: '/etc/ansible/templates/crictl.yaml.j2', dest: '/etc/crictl.yaml', mode: 644}
     - { src: '/etc/ansible/bin/crictl', dest: '/usr/local/bin/crictl', mode: 755}
     - { src: '/etc/ansible/templates/containerd-config.toml.tmpl.j2', dest: '/var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl', mode: 644}

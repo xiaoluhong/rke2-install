@@ -5,7 +5,7 @@
 - name: '任务: Debug'
   hosts: "all"
   tasks:
-  - debug: var=ansible_user
+  - debug: var=inventory_hostname
   tags: debug,never
 
 - name: '任务: 拷贝通用文件'
@@ -34,6 +34,7 @@
   - { role: 'init-master', tags: 'init-master', when: rke2.operation_type is defined and (rke2.operation_type == 'install' or rke2.operation_type == 'upgrade') }
 
 # 安装/升级 Matser 节点
+
 - name: '任务: 安装 Master'
   hosts: "master"
   gather_facts: false
@@ -49,6 +50,7 @@
   - { role: 'master', tags: 'master', when: rke2.operation_type is defined and rke2.operation_type == 'upgrade' }
 
 # 安装/升级 Agent 节点
+
 - name: '任务: 安装 Agent 节点'
   hosts: "agent"
   gather_facts: false
@@ -89,4 +91,11 @@
   hosts: "all"
   gather_facts: false
   roles:
-  - { role: 'uninstall', tags: 'uninstall', when: rke2.operation_type is defined and rke2.operation_type == 'uninstall' }
+  - { role: 'uninstall', tags: 'uninstall,never' }
+
+# 重启
+- name: '任务: 卸载集群'
+  hosts: "all"
+  gather_facts: false
+  roles:
+  - { role: 'restart', tags: 'never' }

@@ -69,8 +69,10 @@ node-taint:
 {% endfor %}
 {% endif %}
 
-{% if node_ip is defined and node_ip |default([]) %}
-node-ip: {{ node_ip }}
+node-ip: {{ inventory_hostname }}
+
+{% if node_external_ip is defined and node_external_ip|default([]) %}
+node-external-ip: {{ node_external_ip  }}
 {% endif %}
 
 {% if rke2.profile is defined and rke2.profile |default([]) %}
@@ -132,6 +134,10 @@ etcd-snapshot-retention: {{ rke2.server.etcd_snapshot_retention }}
 
 {% if rke2.server.etcd_snapshot_schedule_cron is defined and rke2.server.etcd_snapshot_schedule_cron |default([]) %}
 etcd-snapshot-schedule-cron: {{ rke2.server.etcd_snapshot_schedule_cron }}
+{% endif %}
+
+{% if rke2.server.other_config is defined and rke2.server.other_config |default([]) %}
+{{ rke2.server.other_config|to_nice_yaml }}
 {% endif %}
 
 {% if ( hostvars[inventory_hostname].global_kube_controller_manager_arg is defined and hostvars[inventory_hostname].global_kube_controller_manager_arg != None ) or ( hostvars[inventory_hostname].groups_kube_controller_manager_arg is defined and hostvars[inventory_hostname].groups_kube_controller_manager_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_controller_manager_arg is defined and hostvars[inventory_hostname].hosts_kube_controller_manager_arg != None ) %}
@@ -340,60 +346,4 @@ kubelet-arg:
   - {{ item.key }}={{ item.value }}
 {% endfor %}
 {% endif %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) or ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) or ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
-kube-proxy-arg:
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
-{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine()|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
-{% set items = hostvars[inventory_hostname].groups_kube_proxy_arg|combine()|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined or hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
-{% set items = hostvars[inventory_hostname].hosts_kube_proxy_arg|combine()|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is undefined or hostvars[inventory_hostname].hosts_kube_proxy_arg == None ) %}
-{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].groups_kube_proxy_arg)|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is undefined or hostvars[inventory_hostname].groups_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
-{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is undefined or hostvars[inventory_hostname].global_kube_proxy_arg == None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
-{% set items = hostvars[inventory_hostname].groups_kube_proxy_arg|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-
-{% if ( hostvars[inventory_hostname].global_kube_proxy_arg is defined and hostvars[inventory_hostname].global_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].groups_kube_proxy_arg is defined and hostvars[inventory_hostname].groups_kube_proxy_arg != None ) and ( hostvars[inventory_hostname].hosts_kube_proxy_arg is defined and hostvars[inventory_hostname].hosts_kube_proxy_arg != None ) %}
-{% set items = hostvars[inventory_hostname].global_kube_proxy_arg|combine(hostvars[inventory_hostname].groups_kube_proxy_arg)|combine(hostvars[inventory_hostname].hosts_kube_proxy_arg)|dict2items %}
-{% for item in items %}
-  - {{ item.key }}={{ item.value }}
-{% endfor %}
-{% endif %}
-{% endif %}
-
-{% if rke2.server.other_config is defined and rke2.server.other_config |default([]) %}
-{{ rke2.server.other_config|to_nice_yaml }}
 {% endif %}

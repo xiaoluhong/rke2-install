@@ -1,0 +1,12 @@
+---
+- name: '步骤: 重启 rke2 server'
+  shell: "{{ item }}"
+  with_items:
+    - systemctl restart rke2-server.service; > /dev/null 2>&1; echo $?;
+  tags: [restart-master]
+
+- name: '步骤: 重启 rke2 agent'
+  shell: "{{ item }}"
+  with_items:
+    - systemctl restart rke2-agent.service; > /dev/null 2>&1; echo $?;
+  tags: [restart-agent]

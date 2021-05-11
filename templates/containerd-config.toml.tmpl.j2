@@ -51,12 +51,14 @@ oom_score = -1000
   stream_server_port = "10010"
   stream_idle_timeout = "4h0m0s"
   enable_selinux = {{ .NodeConfig.SELinux }}
+{{- if .DisableCgroup}}
+  disable_cgroup = true
+{{end}}
   max_concurrent_downloads = 10
   max_container_log_line_size = 16384
   stats_collect_period = 10
 
 {{- if .IsRunningInUserNS }}
-  disable_cgroup = true
   disable_apparmor = true
   restrict_oom_score_adj = true
 {{end}}
@@ -86,6 +88,12 @@ oom_score = -1000
 {{range $k, $v := .PrivateRegistryConfig.Mirrors }}
 [plugins.cri.registry.mirrors."{{$k}}"]
   endpoint = [{{range $i, $j := $v.Endpoints}}{{if $i}}, {{end}}{{printf "%q" .}}{{end}}]
+{{if $v.Rewrites}}
+  [plugins.cri.registry.mirrors."{{$k}}".rewrite]
+{{range $pattern, $replace := $v.Rewrites}}
+    "{{$pattern}}" = "{{$replace}}"
+{{end}}
+{{end}}
 {{end}}
 
 {{range $k, $v := .PrivateRegistryConfig.Configs }}

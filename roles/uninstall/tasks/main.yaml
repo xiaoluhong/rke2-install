@@ -26,6 +26,7 @@
     - rm -rf /var/lib/rancher/rke2/agent/serving-kubelet.crt
     - rm -rf /var/lib/rancher/rke2/agent/serving-kubelet.key
     - rm -rf /var/lib/rancher/rke2/data
-    - rm -rf /var/lib/rancher/rke2/server
+    - rm -rf /var/lib/rancher/rke2/server/token
+    - rm -rf /var/lib/rancher/rke2/server/node-token
     - rm -rf /var/lib/rancher/rke2/bin
   tags: []
