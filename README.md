@@ -30,7 +30,7 @@
   - remove-node: 需要在添加的 master 节点上添加 remove_node: true
   - uninstall: 清理整合集群和节点残留（数据会全部丢失）
 
-- all.rke2.version: 定义需要安装或者升级的 rke2 版本号
+- all.rke2.version: 定义需要安装或者升级的 rke2 版本号.
 - all.rke2.server.url: 用于 Agent 连接 Master 的 ip 或者域名，如果是 HA 模式，此地址应该为 master 前面的 VIP 地址。此配置只能设置一个地址。9345 端口不能修改
 - all.rke2.server.url_tls_san: 因为 ssl 证书中会绑定 ip 或者域名，只有通过绑定的地址才可以访问。如果后期想更换另一个地址访问，则可以在此添加。此配置可以设置多个地址。
 - all.rke2.token: ha 模式下认证 token，可自行生成随机字符串。
@@ -46,7 +46,7 @@
 # role: 定义 K8S 集群节点角色，master 或者 agent。
 # node_label: 节点标签，数组形式，例如：- test: true
 # node_taint: 节点污点，数组形式，例如：- "CriticalAddonsOnly: true:NoExecute"
-# add_node: true/false。新的节点设置为 true，将会自动添加到集群。
+# add_node: true/false，新的节点设置为 true，将会自动添加到集群。
 # remove_node: true，如果要删除某个节点，在节点中定义 remove 为 true。
 
 ####### 主机 K8S 组件参数 #######

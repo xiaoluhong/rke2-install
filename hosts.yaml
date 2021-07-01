@@ -152,7 +152,7 @@ all:
     rke2:
       operation_type: install # install、upgrade、add-master-node、add-agent-node、remove-node、uninstall、none
       # 定义需要安装或者升级的 rke2 版本号
-      version: v1.20.6+rke2r1
+      version: v1.21.2+rke2r1
       # ha 模式下认证 token，可以自己生成随机字符串。
       token: 'cb3f15296208900746630724cd86e561'
       cloud_provider_name:
