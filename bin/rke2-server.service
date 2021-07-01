@@ -11,6 +11,7 @@ WantedBy=multi-user.target
 [Service]
 OOMScoreAdjust=-1000
 ExecStartPost=/bin/sh -c "if [ -f "/sbin/iptables" ]; then /sbin/iptables -P FORWARD ACCEPT; fi; if [ -f "/usr/sbin/iptables" ]; then /usr/sbin/iptables -P FORWARD ACCEPT; fi;"
+Type=notify
 EnvironmentFile=-/etc/default/%N
 EnvironmentFile=-/etc/sysconfig/%N
 EnvironmentFile=-/usr/local/lib/systemd/system/%N.env
@@ -23,6 +24,7 @@ TasksMax=infinity
 TimeoutStartSec=0
 Restart=always
 RestartSec=5s
+ExecStartPre=/bin/sh -xc '! /usr/bin/systemctl is-enabled --quiet nm-cloud-setup.service'
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
 ExecStart=/usr/local/bin/rke2 server --config /etc/rancher/rke2/master-config.yaml
