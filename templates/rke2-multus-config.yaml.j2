@@ -1,0 +1,9 @@
+# /var/lib/rancher/rke2/server/manifests/rke2-multus-config.yaml
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-multus
+  namespace: kube-system
+spec:
+  valuesContent: |-

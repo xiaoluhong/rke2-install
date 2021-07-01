@@ -161,6 +161,8 @@ all:
       snapshotter: ""
       # (security) Validate system configuration against the selected benchmark (valid items: cis-1.5)
       profile: ""
+      # 部署 CNI 网络插件, 可以选择：none, canal, cilium (默认: "canal")
+      cni: canal
       server:
         debug: false
         config: /etc/rancher/rke2/master-config.yaml
@@ -173,7 +175,7 @@ all:
         url_tls_san:
           - 172.16.129.18
           - www.test.com
-        # 禁用哪些服务安装，默认全部安装 (rke2-canal, rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
+        # 禁用哪些服务安装，默认全部安装 (rke2-coredns, rke2-ingress, rke2-kube-proxy, rke2-metrics-server)
         disable: ''
         write_kubeconfig_mode: "0644"
         cluster_domain: "cluster.local" # default: "cluster.local"

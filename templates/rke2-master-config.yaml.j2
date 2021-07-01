@@ -49,6 +49,10 @@ write-kubeconfig: {{ rke2.server.write_kubeconfig }}
 write-kubeconfig-mode: {{ rke2.server.write_kubeconfig_mode }}
 {% endif %}
 
+{% if rke2.cni is defined and rke2.cni |default([]) %}
+cni: {{ rke2.cni }}
+{% endif %}
+
 {% if node_name is defined and node_name |default([]) %}
 node-name: {{ node_name }}
 {% endif %}

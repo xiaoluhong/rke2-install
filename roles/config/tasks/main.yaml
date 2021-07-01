@@ -73,7 +73,63 @@
     src: /etc/ansible/templates/rke2-kube-proxy-config.yaml.j2
     dest: /var/lib/rancher/rke2/server/manifests/rke2-kube-proxy-config.yaml
   tags: [ master-config,config ]
-  when: inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+  when: rke2-kube-proxy not in rke2.server.disable and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 ingress-nginx 自定义配置
+- name: '步骤: 生成 ingress-nginx 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-ingress-nginx-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-ingress-nginx-config.yaml
+  tags: [ master-config,config ]
+  when: rke2-ingress not in rke2.server.disable and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 coredns 自定义配置
+- name: '步骤: 生成 cilium 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-coredns-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-coredns-config.yaml
+  tags: [ master-config,config ]
+  when: rke2-coredns not in rke2.server.disable and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 metrics-server 自定义配置
+- name: '步骤: 生成 metrics-server 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-metrics-server-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-metrics-server-config.yaml
+  tags: [ master-config,config ]
+  when: rke2-metrics-server not in rke2.server.disable and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 calico 自定义配置
+- name: '步骤: 生成 calico 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-calico-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml
+  tags: [ master-config,config ]
+  when: calico in rke2.cni and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 canal 自定义配置
+- name: '步骤: 生成 canal 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-canal-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-canal-config.yaml
+  tags: [ master-config,config ]
+  when: canal in rke2.cni and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 cilium 自定义配置
+- name: '步骤: 生成 cilium 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-cilium-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+  tags: [ master-config,config ]
+  when: cilium in rke2.cni and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
+
+# 生成 multus 自定义配置
+- name: '步骤: 生成 multus 自定义配置'
+  template:
+    src: /etc/ansible/templates/rke2-multus-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-multus-config.yaml
+  tags: [ master-config,config ]
+  when: multus in rke2.cni and inventory_hostname in groups['master'] or inventory_hostname in groups['init_master']
 
 - name: '步骤: 去除配置文件中的空行'
   shell: "{{ item }}"
