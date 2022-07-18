@@ -82,6 +82,9 @@ oom_score = -1000
 [plugins.cri.containerd.runtimes.runc]
   runtime_type = "io.containerd.runc.v2"
 
+[plugins.cri.containerd.runtimes.runc.options]
+	SystemdCgroup = true
+
 {{ if .PrivateRegistryConfig }}
 {{ if .PrivateRegistryConfig.Mirrors }}
 [plugins.cri.registry.mirrors]{{end}}
